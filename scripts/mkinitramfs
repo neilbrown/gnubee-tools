@@ -32,7 +32,7 @@ case `uname -m` in
 	    remote="ssh -x $GNUBEE_SSH_HOST"
 	    case `$remote uname -m` in
 		mips ) : success ;;
-		* ) echo >&2 $GNUBEE_SSH_HOST no accessible or not mips
+		* ) echo >&2 $GNUBEE_SSH_HOST no accessible or not mips; exit 1
 	    esac
 esac
 
@@ -110,8 +110,8 @@ if [ -f $builddir/include/linux/switch.h ]; then
    T=/tmp/.gb-built-$$
    (cd $builddir ; tar cf - include ) | $remote "rm -rf $T; mkdir -p $T; cd $T; tar xf -"
    (cd $gbtools/swconfig; tar cf - .) | $remote "cd $T; tar xf - ; make swconfig"
-   $remote cat $T/swconfig > bin/swconfig ; chmod 755 bin/$b
-   lib="$libs `$remote ldd "$T/swconfig" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
+   $remote cat $T/swconfig > bin/swconfig ; chmod 755 bin/swconfig
+   libs="$libs `$remote ldd "$T/swconfig" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
    $remote rm -rf $T
 fi
 

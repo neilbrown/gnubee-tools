@@ -19,21 +19,25 @@ gbtools=`realpath $(dirname $prog)/..`
 : headers are installed into ${GNUBEE_BUILD_DIR:=$gbtools/build}
 : cross compuler used is ${CROSS_COMPILE}
 
+mkdir -p ${GNUBEE_KERNEL_OBJECTS}
+
 export ARCH=mips CROSS_COMPILE
 export GNUBEE_KERNEL_OBJECTS GNUBEE_INITRAMFS_TREE GNUBEE_BUILD_DIR
 export GNUBEE_INITRAMFS_PATH=`realpath $GNUBEE_INITRAMFS_TREE`
+touch $GNUBEE_KERNEL_OBJECTS/initramfs-files.txt
 export GNUBEE_INITRAMFS_FILES=`realpath $GNUBEE_KERNEL_OBJECTS/initramfs-files.txt`
 export GNUBEE_SSH_HOST
 help() {
 cat << END
-Usage: gbmake [ modules | header | gnubee.bin | defconfig* | ...]
+Usage: gbmake [ defconfig* | headers | initramfs | modules | gnubee.bin | ...]
 gbmake behaves exactly like "make" unless the first argument is a known
 command.  Known commands are:
  defconfig*: choose a default config file from ${GNUBEE_CONFIG_DIR}
+ headers: install kernel headers into $GNUBEE_BUILD_DIR
  initramfs: create initramfs tree in ${GNUBEE_INITRAMFS_TREE} to be included in kernel
  modules: runs "make modules" then installs modules into the initramfs
- headers: install kernel headers into $GNUBEE_BUILD_DIR
  gnubee.bin: "make uImage", then copy to /srv/tftpboot and $GNUBEE_BUILD_DIR
+ firmwakre: run all of the above in the correct order
  help: display this message
  -h: display help message
 
@@ -108,12 +112,23 @@ gnubee_bin() {
 	ls -lh "$GNUBEE_BUILD_DIR/gnubee.bin"
 }
 
+gnubee_firmware() {
+	gnubee_defconfig ${1-gbpc1_4.4} &&
+	make O="$GNUBEE_KERNEL_OBJECTS"  ${2--j4} &&
+	gnubee_headers &&
+	gnubee_initramfs &&
+	gnubee_modules &&
+	gnubee_bin
+}
+
+
 case $1 in
  defconfig* | *defconfig ) gnubee_defconfig $1;;
  initramfs ) gnubee_initramfs;;
  modules ) gnubee_modules ;;
  headers ) gnubee_headers ;;
  gnubee.bin ) gnubee_bin  ;;
+ firmware ) gnubee_firmware $2 $3;;
  help | -h ) help ;;
 
  * )
