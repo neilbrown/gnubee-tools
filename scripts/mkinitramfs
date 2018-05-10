@@ -1,0 +1,139 @@
+#!/bin/bash
+# mkinitramfs - copyright Neil Brown <neilb@brown.name> 2018
+# Licensed under GPLv2
+
+# mkinitramfs creates an initramfs image from a Debian mips install
+# to be used for booting a GNUBEE-PC.
+# It adds scripts, various binaries and libraries, and provides a
+# list of devices files.
+# It is not intended to be used directly - use "gbmake initramfs"
+#
+usage() {
+	echo >&2 "Usage: mkinitramfs target-directory file-for-device-list"
+	exit 2
+}
+
+case $# in
+	2 ) dir=$1 devlist=$2
+		if [ ! -d "$dir" ]; then
+			echo >&2 "$dir does not exist".
+			usage
+		fi
+	;;
+	* ) usage
+esac
+
+case `uname -m` in
+	mips ) remote=eval ;;
+	* ) if [ -z "$GNUBEE_SSH_HOST" ]; then
+		echo Please run on a gnubee, or provide GNUBEE_SSH_HOST
+		exit 1
+	    fi
+	    remote="ssh -x $GNUBEE_SSH_HOST"
+	    case `$remote uname -m` in
+		mips ) : success ;;
+		* ) echo >&2 $GNUBEE_SSH_HOST no accessible or not mips
+	    esac
+esac
+
+
+prog=$0
+if [ -L "$prog" ]; then prog=`readlink $prog`; fi
+gbtools=`realpath $(dirname $prog)/..`
+
+if [ ! -d "$gbtools/scripts" ]; then
+	echo >&2 Cannot find scripts in $gbtools
+	exit 1
+fi
+
+cat > $devlist <<- END
+	dir /dev 755 0 0
+	nod /dev/console 600 0 0 c 5 1
+	nod /dev/null 666 0 0 c 1 3
+	nod /dev/zero 666 0 0 c 1 5
+	nod /dev/tty 666 0 0 c 5 0
+	nod /dev/tty0 660 0 0 c 4 0
+	nod /dev/tty1 660 0 0 c 4 1
+	nod /dev/random 666 0 0 c 1 8
+	nod /dev/urandom 666 0 0 c 1 9
+	nod /dev/kmsg 666 0 0 c 1 11
+	dir /dev/pts 755 0 0
+	dir /proc 755 0 0
+	dir /sys 755 0 0
+	dir /mnt 755 0 0
+	dir /mnt/root 755 0 0
+END
+
+builddir=`realpath "$GNUBEE_BUILD_DIR"`
+cd $dir
+
+case `realpath .` in
+	/*/*/* ) : ok ;;
+	* ) echo >&@ Refusing to create initramfs at such a high-level directory: `realpath .`
+		exit 2;
+esac
+
+rm -rf *
+mkdir -p bin lib/modules run/mdadm
+ln -s bin sbin
+
+libs=
+# install essential binaries
+for b in busybox findfs; do
+    path=`$remote which $b 2> /dev/null`
+    if [ -z "$path" ]; then
+	echo "Please install $b"
+	exit 1;
+    fi
+    echo "## Install $path"
+    b=`basename $path`
+    $remote cat "$path" > bin/$b ; chmod 755 bin/$b
+    libs="$libs `$remote ldd "$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
+done
+
+# now optional binaries
+for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair; do
+    path=`$remote which $b 2> /dev/null`
+    if [ -z "$path" ]; then
+	echo $"$b not found, not installing"
+    else
+	echo "## Install $path"
+	b=`basename $path`
+	$remote cat "$path" > bin/$b ; chmod 755 bin/$b
+	libs="$libs `$remote ldd "$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
+    fi
+done
+
+# Now we might need to build swconfig..
+if [ -f $builddir/include/linux/switch.h ]; then
+   echo '## building swconfig'
+   T=/tmp/.gb-built-$$
+   (cd $builddir ; tar cf - include ) | $remote "rm -rf $T; mkdir -p $T; cd $T; tar xf -"
+   (cd $gbtools/swconfig; tar cf - .) | $remote "cd $T; tar xf - ; make swconfig"
+   $remote cat $T/swconfig > bin/swconfig ; chmod 755 bin/$b
+   lib="$libs `$remote ldd "$T/swconfig" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
+   $remote rm -rf $T
+fi
+
+# Now make sure we have all the libraries we need.
+for lib in $libs; do
+	if [ ! -f .$lib ]; then
+		echo '## Adding' $lib
+		mkdir -p `dirname .$lib`
+		$remote cat $lib > .$lib ; chmod +x .$lib
+	fi
+done
+
+# add busybox links
+$remote busybox --list |
+  while read a;
+  do
+     ln -s busybox bin/$a
+  done
+
+# copy in some scripts
+for i in $gbtools/initramfs/*
+do
+	echo "## Install script `basename $i`"
+	cp $i .
+done

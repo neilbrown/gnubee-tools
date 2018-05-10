@@ -1,0 +1,13 @@
+#
+# This is check code sourced by gbmake
+
+# Directory for kernel build objects, usually a relative path
+#   GNUBEE_KERNEL_OBJECTS=O
+# Directory for initramfs, can be relative
+#   GNUBEE_INITRAMFS_TREE:=initramfs
+# Directory containing kernel config files - 'kern_config' in parent of script by default
+#   GNUBEE_CONFIG_DIR=
+# Directory where user-space tools are built - usually ../build from script dir
+#   GNUBEE_BUILD_DIR=
+# Cross compiler - full path such as /opt/cross/bin/mipsel-unknown-linux-gnu-
+#   CROSS_COMPILE=

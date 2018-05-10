@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# gbmake - copyright Neil Brown <neilb@brown.name> 2018
+# Licensed under GPLv2
+
+# gbmake helps to build firmware to run on the gnubee-pc open NAS device.
+# https://www.gnubee.org/
+
+# It should be run in the root of a Linux kernel source tree.
+
+prog=$0
+if [ -L "$prog" ]; then prog=`readlink $prog`; fi
+gbtools=`realpath $(dirname $prog)/..`
+[ -f $gbtools/config ] && . $gbtools/config
+
+: kernel build object are placed in ${GNUBEE_KERNEL_OBJECTS:=O}
+: initramfs is placed in ${GNUBEE_INITRAMFS_TREE:=initramfs}
+: default kernel config files are found in ${GNUBEE_CONFIG_DIR:=$gbtools/kern_config}
+: headers are installed into ${GNUBEE_BUILD_DIR:=$gbtools/build}
+: cross compuler used is ${CROSS_COMPILE}
+
+export ARCH=mips CROSS_COMPILE
+export GNUBEE_KERNEL_OBJECTS GNUBEE_INITRAMFS_TREE GNUBEE_BUILD_DIR
+export GNUBEE_INITRAMFS_PATH=`realpath $GNUBEE_INITRAMFS_TREE`
+export GNUBEE_INITRAMFS_FILES=`realpath $GNUBEE_KERNEL_OBJECTS/initramfs-files.txt`
+export GNUBEE_SSH_HOST
+help() {
+cat << END
+Usage: gbmake [ modules | header | gnubee.bin | defconfig* | ...]
+gbmake behaves exactly like "make" unless the first argument is a known
+command.  Known commands are:
+ defconfig*: choose a default config file from ${GNUBEE_CONFIG_DIR}
+ initramfs: create initramfs tree in ${GNUBEE_INITRAMFS_TREE} to be included in kernel
+ modules: runs "make modules" then installs modules into the initramfs
+ headers: install kernel headers into $GNUBEE_BUILD_DIR
+ gnubee.bin: "make uImage", then copy to /srv/tftpboot and $GNUBEE_BUILD_DIR
+ help: display this message
+ -h: display help message
+
+In all cases, ARCH is set to "mips" and other configuration
+is read from $gbtools/config
+END
+}
+
+gnubee_defconfig() {
+	mach=${1#defconfig_}
+	mach=${mach#defconfig-}
+	mach=${mach%-defconfig}
+	mach=${mach%_defconfig}
+	if [ -f "$GNUBEE_CONFIG_DIR/$mach" ]; then
+		mkdir -p "$GNUBEE_KERNEL_OBJECTS"
+		cp "$GNUBEE_CONFIG_DIR/$mach" "$GNUBEE_KERNEL_OBJECTS/.config"
+		make O="$GNUBEE_KERNEL_OBJECTS" oldconfig
+	else
+		echo >&2 "Config file '$mach' does not exist"
+		echo >&2 "Please choose one of:"
+		ls -C "$GNUBEE_CONFIG_DIR" | sed 's/^/    /' >&2
+		exit 1
+	fi
+	# This must at least exist for any compile
+	mkdir -p "${GNUBEE_INITRAMFS_TREE}"
+	touch "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
+}
+
+gnubee_initramfs() {
+	i=${GNUBEE_INITRAMFS_TREE}
+	mkdir -p "$i"
+	case `realpath "$i"` in
+		/ ) echo >&2 Cannot use root as initramfs tree.; exit 1
+	esac
+
+	rm -rf "$i"; mkdir "$i"
+	mkdir -p "$GNUBEE_KERNEL_OBJECTS"
+	$gbtools/scripts/mkinitramfs "$i" "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
+	echo "initramfs: $(du -sh "$i")"
+}
+
+gnubee_modules() {
+	case `realpath $GNUBEE_INITRAMFS_TREE/lib` in
+		/lib ) echo >&2 Cannot use root as initramfs tree.; exit 1
+	esac
+	rm -rf "$GNUBEE_INITRAMFS_TREE/lib/modules/[1-9]*"
+	make O="$GNUBEE_KERNEL_OBJECTS" INSTALL_MOD_PATH="`realpath $GNUBEE_INITRAMFS_TREE`" \
+		modules_install
+}
+
+gnubee_headers() {
+	case `realpath $GNUBEE_BUILD_DIR/` in
+		/usr | / ) echo >&2 Cannot build to /usr or /.; exit 1
+	esac
+	rm -rf "$GNUBEE_BUILD_DIR/include"
+	make O="$GNUBEE_KERNEL_OBJECTS" INSTALL_HDR_PATH="$GNUBEE_BUILD_DIR" \
+		headers_install
+}
+
+gnubee_bin() {
+	if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
+		echo >&2 "Please run 'gbmake initramfs' first"
+		exit 1
+	fi
+	make O="$GNUBEE_KERNEL_OBJECTS" uImage || exit 1
+	if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" \
+		/srv/tftpboot/GB-PCx_uboot.bin
+	then
+		ls -lh /srv/tftpboot/GB-PCx_uboot.bin
+	fi
+	cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" "$GNUBEE_BUILD_DIR/gnubee.bin"
+	ls -lh "$GNUBEE_BUILD_DIR/gnubee.bin"
+}
+
+case $1 in
+ defconfig* | *defconfig ) gnubee_defconfig $1;;
+ initramfs ) gnubee_initramfs;;
+ modules ) gnubee_modules ;;
+ headers ) gnubee_headers ;;
+ gnubee.bin ) gnubee_bin  ;;
+ help | -h ) help ;;
+
+ * )
+    if [ ! -f "$GNUBEE_KERNEL_OBJECTS/.config" ]; then
+	echo >&2 Please run gbmake defconfig_XX first
+	exit 1
+    fi
+    make O="$GNUBEE_KERNEL_OBJECTS" ${1+"$@"}
+esac
