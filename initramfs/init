@@ -1,4 +1,5 @@
 #!/bin/busybox ash
+#  SPDX-License-Identifier: GPL-2.0
 
 gnubee_switch_root(){
   echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg

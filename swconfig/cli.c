@@ -1,4 +1,5 @@
 /*
+ * SPDX-License-Identifier: GPL-2.0
  * swconfig.c: Switch configuration utility
  *
  * Copyright (C) 2008 Felix Fietkau <nbd@nbd.name>

@@ -1,5 +1,6 @@
 /*
  * uci.c: UCI binding for the switch configuration utility
+ * SPDX-License-Identifier: GPL-2.0
  *
  * Copyright (C) 2009 Felix Fietkau <nbd@nbd.name>
  *

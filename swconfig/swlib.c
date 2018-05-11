@@ -1,5 +1,6 @@
 /*
  * swlib.c: Switch configuration API (user space part)
+ * SPDX-License-Identifier: GPL-2.0
  *
  * Copyright (C) 2008 Felix Fietkau <nbd@nbd.name>
  *

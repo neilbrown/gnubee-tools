@@ -1,6 +1,7 @@
 #!/bin/bash
 # mkinitramfs - copyright Neil Brown <neilb@brown.name> 2018
-# Licensed under GPLv2
+#  SPDX-License-Identifier: GPL-2.0
+
 
 # mkinitramfs creates an initramfs image from a Debian mips install
 # to be used for booting a GNUBEE-PC.
