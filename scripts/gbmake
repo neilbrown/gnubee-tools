@@ -46,17 +46,55 @@ is read from $gbtools/config
 END
 }
 
+gnubee_model() {
+    case `grep machine /proc/cpuinfo` in
+	*GB-PC1* ) prefix=gbpc1;;
+	*GB-PC1* ) prefix=gbpc2;;
+	* ) echo UNKNOWN; return 1
+    esac
+    if [ ! -c /dev/mtd0 ]; then
+	echo UNKNOWN; return 1
+    fi
+    speed=
+    for i in "800 725a00c0" "875 224a00c0" "880 b25a00c0" "900 c25a00c0"
+    do
+	set $i
+	if od 2> /dev/null --endian big -X /dev/mtd0 | grep "00000000 $2" > /dev/null
+	then
+	    speed=$1; break;
+	fi
+    done
+    if [ -z "$speed" ]; then
+	echo no-speed; return 1
+    fi
+    if [ ! -f Makefile ]; then
+	echo "No-version"; return 1
+    fi
+    vers=`awk '$1=="VERSION" {v=$3} $1=="PATCHLEVEL" {p=$3} END {printf "%d.%d\n",v,p}' Makefile`
+    echo "$prefix-$speed-$vers"
+    return 0
+}
+
 gnubee_defconfig() {
 	mach=${1#defconfig_}
 	mach=${mach#defconfig-}
 	mach=${mach%-defconfig}
 	mach=${mach%_defconfig}
+	case $mach in
+	    "" | defconfig ) # guess
+		if mach=`gnubee_model`; then
+		    echo Using config $mach
+		else
+		    echo >&2 Cannot guess machine type
+		    mach=
+		fi
+	esac
 	if [ -f "$GNUBEE_CONFIG_DIR/$mach" ]; then
 		mkdir -p "$GNUBEE_KERNEL_OBJECTS"
 		cp "$GNUBEE_CONFIG_DIR/$mach" "$GNUBEE_KERNEL_OBJECTS/.config"
 		make O="$GNUBEE_KERNEL_OBJECTS" oldconfig
 	else
-		echo >&2 "Config file '$mach' does not exist"
+		[ -n "$mach" ] && echo >&2 "Config file '$mach' does not exist"
 		echo >&2 "Please choose one of:"
 		ls -C "$GNUBEE_CONFIG_DIR" | sed 's/^/    /' >&2
 		exit 1
@@ -116,7 +154,7 @@ gnubee_bin() {
 }
 
 gnubee_firmware() {
-	gnubee_defconfig ${1-gbpc1_4.4} &&
+	{ [ -f "$GNUBEE_KERNEL_OBJECTS/.config" ] || gnubee_defconfig ${1}; } &&
 	make O="$GNUBEE_KERNEL_OBJECTS"  ${2--j4} &&
 	gnubee_headers &&
 	gnubee_initramfs &&
