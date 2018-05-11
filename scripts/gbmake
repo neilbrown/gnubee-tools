@@ -86,6 +86,8 @@ gnubee_modules() {
 	rm -rf "$GNUBEE_INITRAMFS_TREE/lib/modules/[1-9]*"
 	make O="$GNUBEE_KERNEL_OBJECTS" INSTALL_MOD_PATH="`realpath $GNUBEE_INITRAMFS_TREE`" \
 		modules_install
+	{ echo "This file is examined by the initramfs on boot" ;
+	  date ; }  > "$GNUBEE_INITRAMFS_TREE/lib/modules/stamp"
 }
 
 gnubee_headers() {

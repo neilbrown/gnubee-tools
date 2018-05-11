@@ -3,12 +3,18 @@
 gnubee_switch_root(){
   echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
   r=`uname -r`
-  if [ -d /mnt/root/lib/modules/$r ]
-  then : skip
+  if [ -d /mnt/root/lib/modules/$r ] &&
+     [ -f /mnt/root/lib/modules/stamp ] &&
+     [ " `cat /lib/modules/stamp`" = " `cat /mnt/root/lib/modules/stamp`" ]
+  then : skip - already installed
   else
      # ensure modules are available
      mount -t tmpfs tmpfs /mnt/root/lib/modules
      cp -a /lib/modules/. /mnt/root/lib/modules/
+     # swconfig might be useful too
+     [ -f /bin/swconfig ] && cp /bin/swconfig /mnt/root/lib/modules
+     # and "keep" is needed of course
+     cp /keep /mnt/root/lib/modules/
   fi
 
   # extract MAC address from 'factory' partition

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Running this script will copy the modules from
+# the in-memory tmpfs filesystem on the root filesystem,
+# and arrange that the tmpfs filesystem is no used in future
+# reboots
+
+keep() {
+    mkdir /tmp/modules
+    mount --bind /lib/modules /tmp/modules
+    umount -l /lib/modules
+    r=`uname -r`
+    echo Copying modules to /lib/modules/$r
+    rm -rf /mnt/root/lib/modules/$r
+    cp -a /tmp/modules/. /lib/modules
+    rm -f /lib/modules/keep # don't need that any more
+    umount /tmp/modules
+    rmdir /tmp/modules
+    echo /lib/modules/$r installed from boot image.
+}
+
+keep
