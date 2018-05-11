@@ -15,6 +15,7 @@ keep() {
     rm -rf /mnt/root/lib/modules/$r
     cp -a /tmp/modules/. /lib/modules
     rm -f /lib/modules/keep # don't need that any more
+    rm -fr /tmp/modules/*
     umount /tmp/modules
     rmdir /tmp/modules
     echo /lib/modules/$r installed from boot image.

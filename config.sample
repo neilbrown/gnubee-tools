@@ -12,3 +12,5 @@
 #   GNUBEE_BUILD_DIR=
 # Cross compiler - full path such as /opt/cross/bin/mipsel-unknown-linux-gnu-
 #   CROSS_COMPILE=
+# GnuBee running Debian from which various programs can be copied.
+#   GNUBEE_SSH_HOST=root@192.168.1.111
