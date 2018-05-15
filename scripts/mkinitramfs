@@ -81,7 +81,7 @@ ln -s bin sbin
 libs=
 # install essential binaries
 for b in busybox findfs; do
-    path=`$remote which $b 2> /dev/null`
+    path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
 	echo "Please install $b"
 	exit 1;
@@ -94,7 +94,7 @@ done
 
 # now optional binaries
 for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair; do
-    path=`$remote which $b 2> /dev/null`
+    path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
 	echo $"$b not found, not installing"
     else
@@ -105,7 +105,7 @@ for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair; do
     fi
 done
 
-# Now we might need to build swconfig..
+# Now we might need to build swconfig.
 if [ -f $builddir/include/linux/switch.h ]; then
    echo '## building swconfig'
    T=/tmp/.gb-built-$$
