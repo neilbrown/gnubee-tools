@@ -26,6 +26,61 @@ gnubee_switch_root(){
   exec switch_root /mnt/root /sbin/init
 }
 
+gnubee_mount_x_initrd_dev(){
+  x_dev=`eval echo '$x_'$1'_dev'`
+  x_path=`eval echo '$x_'$1'_path'`
+  x_type=`eval echo '$x_'$1'_type'`
+  x_opts=`eval echo '$x_'$1'_opts'`
+
+  # filter systemd cookies out of opts
+  x_opts=`echo $x_opts | busybox sed -e 's/\bx-initrd[^, ]*\b//g' -e 's/\bx-systemd[^, ]*\b//g' -e 's/,,*/,/g' -e 's/^,//' -e 's/,$//'`
+  mount -t $x_type -o "$x_opts" $x_dev /mnt/root$x_path
+}
+
+gnubee_mount_x_initrd(){
+  [ -r $1 ] || return 0
+
+  x_devs=
+  x_bind_devs=
+  x_i=0
+  while read x_dev x_path x_type x_opts x_whatever; do
+    [ -z "$x_dev" ] && continue
+    [ -n "`echo $x_dev | busybox grep '^#'`" ] && continue
+    [ -z "`echo $x_opts | busybox grep -Fw x-initrd.mount`" ] && continue
+    if [ "$x_type" = none ]; then
+      x_bind_devs="$x_bind_devs $x_i"
+    else
+      x_devs="$x_devs $x_i"
+    fi
+    eval 'x_'$x_i'_dev'=$x_dev
+    eval 'x_'$x_i'_path'=$x_path
+    eval 'x_'$x_i'_type'=$x_type
+    eval 'x_'$x_i'_opts'=$x_opts
+    x_i=`busybox dc $x_i 1 + p`
+  done < $1
+
+  # non-bind mounts
+  for x_i in $x_devs; do
+    x_d_path=`eval echo '$x_'$x_i'_path'`
+
+    gnubee_mount_x_initrd_dev $x_i
+
+    # correct the dev part of any bind mounts under this one to point
+    # under /mnt/root
+    for x_b in $x_bind_devs; do
+      x_b_dev=`eval echo '$x_'$x_b'_dev'`
+      if [ -n `echo $x_b_dev | grep ^$x_d_path` ]; then
+	eval 'x_'$x_b'_dev'=/mnt/root$x_b_dev
+      fi
+    done
+  done
+
+  # bind mounts
+  for x_i in $x_bind_devs; do
+    gnubee_mount_x_initrd_dev $x_i
+  done
+}
+
 gnubee_boot(){
    mount -t proc none /proc
    mount -t sysfs none /sys
@@ -85,6 +140,7 @@ gnubee_boot(){
        if test -n "$root_dev" &&
                mount -o ro $root_dev /mnt/root &&
                test -L /mnt/root/sbin/init -o -e /mnt/root/sbin/init &&
+               gnubee_mount_x_initrd /mnt/root/etc/fstab &&
                gnubee_switch_root
        then break
        else /bin/ash # recovery shell
