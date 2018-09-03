@@ -200,6 +200,12 @@ gnubee_boot(){
 	mdadm --assemble --scan --auto=md --run --freeze-reshape
     fi
 
+    if test -x /bin/lvm; then
+	modprobe dm_mod
+	echo "Activating LVM volumes" > /dev/kmsg
+	lvm vgchange -a y
+    fi
+
     sleep 1
 
     while true; do

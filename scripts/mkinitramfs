@@ -150,6 +150,26 @@ LIB=$($remote 'cd /; [ -d lib/terminfo ] && echo lib || echo usr/lib')
 mkdir -p etc/terminfo/l
 $remote cat /$LIB/terminfo/l/linux > etc/terminfo/l/linux
 
+# lvm need to know not to use udev
+# cribbed from https://wiki.gentoo.org/wiki/Custom_Initramfs#LVM
+mkdir -p etc/lvm
+cat > etc/lvm/lvm.conf <<- END
+	devices {
+	    # Disable scanning udev for md/multipath components.
+	    # This is required with recent versions of lvm2, even if you use
+	    # another solution for your LV device nodes; without it lvm commands
+	    # will stall for minutes waiting for udev.
+	    multipath_component_detection = 0
+	    md_component_detection = 0
+	}
+	activation {
+	    # Set to 0 to disable udev synchronisation (if compiled into the binaries).
+	    udev_sync = 0
+	    # Set to 0 to disable the udev rules installed by LVM2
+	    udev_rules = 0
+	}
+END
+
 libs=
 if [ "$remote" = "from_chroot" ]; then
     # when installing from a chroot, we cannot run 'ldd', and "strings -" doesn't
