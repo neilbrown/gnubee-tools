@@ -58,6 +58,12 @@ gnubee_boot(){
 	mdadm --assemble --scan --auto=md --run --freeze-reshape
    fi
 
+   if test -x /bin/lvm; then
+	modprobe dm_mod
+	echo "Activating LVM volumes" > /dev/kmsg
+	lvm vgchange -a y
+   fi
+
    if test -x /bin/swconfig; then
 	swconfig dev switch0 set reset
 	swconfig dev switch0 set enable_vlan 1
