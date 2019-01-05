@@ -58,7 +58,7 @@ gnubee_boot(){
 	mdadm --assemble --scan --auto=md --run --freeze-reshape
    fi
 
-   if test -x /bin/swconfig; then
+   if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
 	swconfig dev switch0 set reset
 	swconfig dev switch0 set enable_vlan 1
 	swconfig dev switch0 vlan 1 set ports '0 6t'
@@ -66,6 +66,9 @@ gnubee_boot(){
 	swconfig dev switch0 port 0 set pvid 1
 	swconfig dev switch0 port 4 set pvid 2
 	swconfig dev switch0 set apply
+	ifconfig eth0 up
+	ip link add link eth0 name eth0.1 type vlan id 1
+	ip link add link eth0 name eth0.2 type vlan id 2
    fi
 
 
