@@ -47,7 +47,7 @@ To build a firmware image you can
 	git clone https://github.com/neilbrown/gnubee-tools.git
 	git clone https://github.com/neilbrown/linux.git -b gnubee/v4.4
 	cd linux
-	../gnubee-tools/scripts/gbmake firmware gbpc1-900-4.4
+	../gnubee-tools/scripts/gbmake firmware gbpc1-4.4
 
 If you run this on the GnuBee itself (with Debian installed), no other
 configuration is needed.
@@ -57,10 +57,8 @@ GnuBee.  This needs to be configured in `gnubee-tools/config`, which
 can be copied from `config.sample`.  In particular, `CROSS_COMPILE`
 and `GNUBEE_SSH_HOST` must be set.
 
-The above command will build firmware for a GnuBee running at 900MHz.
-If yours runs a 880MHZ you can ask for `gbpc1-880-4.4`.  If you build
-on the GnuBee itself you can leave the model information out and
-`gbmake` will guess.  If you have a PC2, you still need to specify the
+The above command will build firmware for a GnuBee PC1.
+If you have a PC2, you still need to specify the
 gbpc1 as I haven't added config info for the PC2 yet.
 
 I find that the `gbmake` step takes 104 minutes on a GnuBee, and a

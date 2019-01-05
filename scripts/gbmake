@@ -49,29 +49,17 @@ END
 gnubee_model() {
     case `grep machine /proc/cpuinfo` in
 	*GB-PC1* ) prefix=gbpc1;;
-	*GB-PC1* ) prefix=gbpc2;;
+	*GB-PC2* ) prefix=gbpc2;;
 	* ) echo UNKNOWN; return 1
     esac
     if [ ! -c /dev/mtd0 ]; then
 	echo UNKNOWN; return 1
     fi
-    speed=
-    for i in "800 725a00c0" "875 224a00c0" "880 b25a00c0" "900 c25a00c0"
-    do
-	set $i
-	if od 2> /dev/null --endian big -X /dev/mtd0 | grep "00000000 $2" > /dev/null
-	then
-	    speed=$1; break;
-	fi
-    done
-    if [ -z "$speed" ]; then
-	echo no-speed; return 1
-    fi
     if [ ! -f Makefile ]; then
 	echo "No-version"; return 1
     fi
     vers=`awk '$1=="VERSION" {v=$3} $1=="PATCHLEVEL" {p=$3} END {printf "%d.%d\n",v,p}' Makefile`
-    echo "$prefix-$speed-$vers"
+    echo "$prefix-$vers"
     return 0
 }
 
