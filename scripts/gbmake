@@ -142,6 +142,7 @@ gnubee_bin() {
 }
 
 gnubee_firmware() {
+	mkdir -p initramfs
 	{ [ -f "$GNUBEE_KERNEL_OBJECTS/.config" ] || gnubee_defconfig ${1}; } &&
 	make O="$GNUBEE_KERNEL_OBJECTS"  ${2--j4} &&
 	gnubee_headers &&
