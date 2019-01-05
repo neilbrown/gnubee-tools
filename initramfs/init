@@ -87,7 +87,12 @@ gnubee_boot(){
                test -L /mnt/root/sbin/init -o -e /mnt/root/sbin/init &&
                gnubee_switch_root
        then break
-       else /bin/ash # recovery shell
+       else
+	   PATH=.:$PATH
+	   export PATH
+	   tty=/dev/ttyS0
+	   stty erase '^h' < $tty > $tty
+	   exec setsid sh -c "exec sh < $tty > $tty 2>&1"
        fi
    done
 }
