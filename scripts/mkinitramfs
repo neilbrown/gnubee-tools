@@ -61,6 +61,7 @@ cat > $devlist <<- END
 	dir /dev/pts 755 0 0
 	dir /proc 755 0 0
 	dir /sys 755 0 0
+	dir /tmp 777 0 0
 	dir /mnt 755 0 0
 	dir /mnt/root 755 0 0
 END
@@ -75,8 +76,12 @@ case `realpath .` in
 esac
 
 rm -rf *
-mkdir -p bin lib/modules run/mdadm
+mkdir -p bin lib/modules run/mdadm etc usr
 ln -s bin sbin
+ln -s ../bin usr/sbin
+ln -s ../bin usr/bin
+ln -s ../lib usr/lib
+ln -s /proc/mounts etc/mtab
 
 libs=
 # install essential binaries
@@ -92,8 +97,27 @@ for b in busybox findfs; do
     libs="$libs `$remote ldd "$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
 done
 
+debootstrap_bins=""
+echo "## copying debootstrap (if present)"
+$remote '(cd /; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )' | tar xf -
+if [ -f bin/debootstrap ]; then
+     # let's install everything else needed to bootstrap a debian install
+    debootstrap_bins="blkid mkfs.ext4 tune2fs wget gpgv"
+    libs="$libs /lib/mipsel-linux-gnu/libresolv.so.2"
+    libs="$libs /lib/mipsel-linux-gnu/libnss_dns.so.2"
+
+    # Need to build pkgdetails
+    echo "## building pkgdetails"
+    T=/tmp/.gb-built-$$
+    (cd $gbtools/pkgdetails; tar cf - . ) |
+	$remote "rm -rf $T ; mkdir -p $T; cd $T; tar xf -; cc -Wno-implicit-function-declaration -o pkgdetails pkgdetails.c"
+    $remote cat $T/pkgdetails > usr/share/debootstrap/pkgdetails
+    chmod 755 usr/share/debootstrap/pkgdetails
+else
+    echo "!! debootstrap not installed"
+fi
 # now optional binaries
-for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm; do
+for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm $debootstrap_bins ; do
     path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
 	echo $"$b not found, not installing"
@@ -129,12 +153,12 @@ done
 $remote busybox --list |
   while read a;
   do
-     ln -s busybox bin/$a
+     [ -e bin/$a ] || ln -s busybox bin/$a
   done
 
 # copy in some scripts
 for i in $gbtools/initramfs/*
 do
 	echo "## Install script `basename $i`"
-	cp $i .
+	cp -r $i .
 done

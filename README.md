@@ -7,13 +7,24 @@ the GnuBee NAS platform - See www.gnubee.org.
 Currently the primary focus is building a firmware
 image to boot into the Linux kernel.
 
-It is assumed that an ext4 root filesystem already exists; this can be
-on an SD card, USB storage, or SATA device (including md-raid).
+A normal boot requires that an ext4 root filesystem already exists;
+this can be on an SD card, USB storage, or SATA device (including
+md-raid).
 This filesystem must be named "GNUBEE-ROOT" and `findfs` must be able
 to find it.
 
 This package contains config files and scripts to build a kernel
 and an initramfs, in a format that can be written to flash.
+
+If "GNUBEE-ROOT" cannot be found, the initramfs drops into a shell.
+Enough tools are available to configure the network, create md arrays,
+format an ext4 filesystem, and install Debian over the network.
+A script called "config" is available which does much of this for you.
+It will not create md arrays, but if you create one manually, it will
+find it and offer to install to it.
+
+At the initramfs shell, you can "`cat config`" to see the script or
+just type "`config`" to run it.
 
 Preparation
 -----------
@@ -30,7 +41,7 @@ install them run:
 On whichever machine you want to build the kernel (which could be a
 GnuBee) you will need:
 
-	sudo apt-get install git make gcc bc libssl-dev	u-boot-tools
+	sudo apt-get install git make gcc bc libssl-dev u-boot-tools unzip
 
 Other packages for the GnuBee that are optional but give more functionality
 in the initramfs are:
@@ -38,6 +49,10 @@ in the initramfs are:
 	sudo apt-get install mdadm dropbear cryptsetup-bin \
 		mtd-utils u-boot-tools
 
+If you want to build firmware that can be used to install debian, you
+also need
+
+	sudo apt-get install debootstrap
 
 Building
 --------
@@ -65,6 +80,10 @@ I find that the `gbmake` step takes 104 minutes on a GnuBee, and a
 little over 4 minutes on my quad-core 16GB RAM desktop.  The `git
 clone` of Linux takes roughly forever on the GnuBee due to limited
 memory -- consider doing this elsewhere and coping the result over.
+Alternately, use
+
+	wget  https://github.com/neilbrown/linux/archive/gnubee/v4.4.zip
+
 
 If you want to just run `gbmake firmware` without the full path, you
 can `ln -s` the script to a `bin` directory.  Don't copy it as it
@@ -88,6 +107,8 @@ boot you will find `/lib/modules` is a tmpfs filesystem containing all
 the modules, and so wasting some of your precious memory.  If you run
 `/lib/modules/keep`, the modules will be copied into your root
 filesystem.  Subsequent boots will not have /lib/modules mounted.
+Note that this isn't needed if you use "`config`" to create your
+debian install - that will copy the modules in for you.
 
 /lib/modules will also contain a copy of `swconfig` which is used to
 manage the internal network switch.  The code in the initramfs will

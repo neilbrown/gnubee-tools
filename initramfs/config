@@ -1,0 +1,196 @@
+#!/bin/sh
+
+# "config" walks through configuring a new debian root filesystem
+# steps are:
+# - create a filesystem on /tmp/newroot
+# - configure host name
+# - configure network
+# - debootstrap
+# - fix up installation:
+#    password,shadow
+#    hostname
+#    ssh PermitRootLogin
+#    label filesystem
+
+mp=/tmp/newroot
+
+set_host() {
+    case `hostname` in
+	"(none)") ;;
+	* ) echo "## Hostname set to `hostname`";
+	    return 0
+    esac
+
+    echo -n "Choose hostname (default gnubee.gnubee): "
+    read h
+    case $h in
+	"" ) hostname gnubee.gnubee;;
+	*" "*) ;;
+	* ) hostname $h
+    esac
+    return 1
+}
+
+set_net() {
+    if route -n 2> /dev/null | grep '^0\.0\.0\.0' > /dev/null; then
+	ip=`ip addr show | awk '$1 == "inet" { print $2;exit}'`
+	[ -f /etc/resolv.conf ] || echo nameserver 8.8.8.8 > /etc/resolv.conf
+	echo "## network configured - $ip"
+	return 0
+    fi
+    if ps | grep '[u]dhcpc' > /dev/null; then
+	echo "## waiting for network..."
+	sleep 5
+	if route -n 2> /dev/null | grep '^0\.0\.0\.0' > /dev/null; then
+	    ip=`ip addr show | awk '$1 == "inet" { print $2;exit}'`
+	    echo "## network configured - $ip"
+	    return 0
+	fi
+	killall udhcpc
+    fi
+
+    dev=eth0
+    case `swconfig list` in
+	*switch0* ) dev=eth0.1
+    esac
+    echo -n "Configure network ($dev) [s]tatic [d]hcp or [m]anual? "
+    read ans
+    case $ans in
+	[Mm]* ) echo "Please configure network, create a default route, and restart."
+		echo nameserver 8.8.8.8 > /etc/resolv.conf
+		exit 0
+		;;
+	[Dd]* ) ifconfig $dev up ; udhcpc -i $dev -s /udhcpc.script;
+		;;
+	[Ss]* ) echo -n "IP address (192.168.1.10)? "
+		read IP
+		t="$IFS"; IFS=.; set $IP; IFS="$t"
+		gw=$1.$2.$3.1
+		echo -n "Netmask (255.255.255.0)? "
+		read NETMASK
+		echo -n "Gateway ($gw)? "
+		read GATE
+		echo -n "DNS server (8.8.8.8)? "
+		read DNS
+		killall udhcpc
+		ifconfig $dev ${IP:-192.168.1.10} up netmask ${NETMASK:-255.255.255.0}
+		route add default  gw ${GATE:-$gw}
+		echo nameserver ${DNS:-8.8.8.8} > /etc/resolv.conf
+		;;
+    esac
+    return 1
+}
+
+create_filesystem() {
+    if grep $mp /proc/mounts > /dev/null ; then
+	echo "## $mp mounted"
+	return 0
+    fi
+    mkdir -p $mp
+    echo "Detecting connected partitions, please wait a few moments."
+    OPTIONS=`blkid | grep "/dev/sd\|/dev/mmcblk0p\|/dev/md"`
+    echo "$OPTIONS"
+    echo -n 'Enter device, or "manual" to create md array manually: '
+    read dev
+    if echo "$OPTIONS" | grep "^${dev}:" ; then
+	echo -n "Confirm creating filesystem on $dev [yN]? "
+	read ans
+	case $ans in
+	    [Yy]* ) mkfs.ext4 $dev && mount -t ext4 $dev $mp ;;
+	esac
+	return 1
+    fi
+    case $dev in
+	m | manual ) echo "Please create the device, and run ./config again"
+		     exit 0
+    esac
+    return 1
+}
+
+bootstrap() {
+    if [ -f $mp/etc/debian_version ]; then
+	echo "## Debian is installed"
+	return 0
+    fi
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin:$PATH
+    export PATH
+    debootstrap --arch=mipsel --include=vim,openssh-server,ntpdate,cron,locales,udev,ca-certificates,apt-transport-https,vlan,libnl-3-200,libnl-genl-3-200 stretch $mp http://httpredir.debian.org/debian || exit 1
+    return 1
+}
+
+fixup_net_dhcp() {
+    dev=$1 script=$2
+    f=`echo $dev | tr . -`
+    cat > $mp/etc/network/interfaces.d/02-$f <<- EOF
+	auto $dev
+	iface $dev inet dhcp
+	 pre-up /etc/network/scripts.d/$script
+	EOF
+}
+
+fixup_net_static() {
+    dev=$1 ip=$2 script=$3
+    f=`echo $dev | tr . -`
+    set `route -n | grep '^0\.0\.0.\0'`
+    gateway=$2
+    cat > $mp/etc/network/interfaces.d/02-$f <<- EOF
+	auto $dev
+	iface $dev inet static
+	pre-up /etc/network/scripts.d/$script
+	  address $ip
+	  gateway $gateway
+	EOF
+    cp /etc/resolv.conf $mp/etc/resolv.conf
+}
+
+fixup_net() {
+    mkdir -p $mp/etc/network/scripts.d
+    cp /network-scripts/* $mp/etc/network/scripts.d
+    cp /bin/swconfig $mp/sbin/swconfig
+    cat > $mp/etc/network/interfaces.d/01-lo <<- EOF
+	auto lo
+	iface lo inet loopback
+	EOF
+
+    # FIXME this currenty assumes eth0.0 and eth0.1 are the two
+    # interfaces.  This won't be true with mainline.
+    ip_1=`ip addr show eth0.1 | awk '$1 == "inet" {print $2; exit}'`
+    ip_2=`ip addr show eth0.2 | awk '$1 == "inet" {print $2; exit}'`
+    dev=eth0.1
+    if [ -n "$ip_2" ]; then
+	dev=eth0.2
+    fi
+    if ps | grep "[u]dhcp.*-i $dev" > /dev/null; then
+	fixup_net_dhcp eth0 no_switch
+	fixup_net_dhcp eth0.1 set_switch
+    else
+	ip=`ip addr show $dev | awk '$1 == "inet" { print $2;exit}'`
+	fixup_net_static eth0 $ip no_switch
+	fixup_net_static eth0.1 $ip set_switch
+    fi
+}
+
+fixup_modules() {
+    mkdir -p $mp/lib/modules
+    cp -a /lib/modules/. $mp/lib/modules
+}
+
+fixup() {
+    hostname > $mp/etc/hostname
+    sed -i "s/^root:\*:/root:\$6\$l80E2NNrh32z0N\$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6NkxW3eLCvLbw05tMKkbyRlieU1QeZ4tngZpaS9Fnf0:/" $mp/etc/shadow
+    set `grep " $mp " /proc/mounts`
+    sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' $mp/etc/ssh/sshd_config
+    case $1 in
+	/dev/* ) tune2fs -L GNUBEE-ROOT "$1"
+		 echo "LABEL=GNUBEE-ROOT / ext4 noatime,errors=remount-ro 0 1" > $mp/etc/fstab
+    esac
+    fixup_net
+    fixup_modules
+    return 0
+}
+
+until set_host && set_net && create_filesystem && bootstrap && fixup; do
+    :
+done
+
+echo "## Ready to reboot -f!!"

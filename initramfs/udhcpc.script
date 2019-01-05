@@ -1,0 +1,13 @@
+#!/bin/sh
+case $1 in
+    deconfig )
+	route delete default > /dev/null 2>&1
+	ip address flush dev eth0.1
+	;;
+    bound)
+	ip address add $ip/$mask dev $interface
+	route add default gw $router
+	echo "nameserver $dns" > /etc/resolv.conf
+	;;
+esac
+
