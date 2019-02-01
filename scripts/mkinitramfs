@@ -129,6 +129,27 @@ for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm $debootstra
     fi
 done
 
+if [ -f bin/dropbear ]; then
+    # dropbear needs some extra configuration
+    echo '## configuring dropbear'
+    mkdir etc/dropbear
+    if [ ! -f $builddir/dropbear/dropbear_ecdsa_host_key ]; then
+	mkdir -p $builddir/dropbear
+	$remote "dropbearkey -t ecdsa -f /tmp/drop$$.key >&2;
+		 cat /tmp/drop$$.key" >  $builddir/dropbear/dropbear_ecdsa_host_key
+    fi
+    cp $builddir/dropbear/* etc/dropbear
+    echo passwd: files > etc/nsswitch.conf
+    echo group: files >> etc/nsswitch.conf
+    echo > etc/passwd root:x:0:0:root:/:/bin/sh
+    echo > etc/group  root:x:0:
+    echo 'PATH=.:/bin; export PATH' > etc/profile
+    # root password is GnuBee
+    echo > etc/shadow 'root:$6$l80E2NNrh32z0N$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6NkxW3eLCvLbw05tMKkbyRlieU1QeZ4tngZpaS9Fnf0::0:99999:7:::'
+    libs="$libs /lib/mipsel-linux-gnu/libnss_files.so.2"
+fi
+
+
 # Now we might need to build swconfig.
 if [ -f $builddir/include/linux/switch.h ]; then
    echo '## building swconfig'
