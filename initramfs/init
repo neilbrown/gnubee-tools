@@ -1,6 +1,30 @@
 #!/bin/busybox ash
 #  SPDX-License-Identifier: GPL-2.0
 
+set_led() {
+    modprobe leds_gpio
+    led=$1
+    if [ "x$led" != "xsystem" ]; then
+	led=status
+    fi
+    ( cd /sys/class/leds/gb-pc1:green:$led;
+      case $# in
+	  3 )
+	      echo timer > trigger
+	      echo $2 > delay_on
+	      echo $3 > delay_off
+	      ;;
+	  * ) echo none > trigger
+      esac
+    )
+}
+
+run_shell() {
+    tty=$1
+    stty erase '^h' < $tty > $tty
+    exec setsid sh -c "exec sh < $tty > $tty 2>&1"
+}
+
 gnubee_switch_root(){
   echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
   r=`uname -r`
@@ -22,6 +46,9 @@ gnubee_switch_root(){
   addr=`dd 2> /dev/null if=/dev/mtd2 bs=1 skip=57344 count=6 | od -t x1 -A none`
   ip link set eth0 address `echo $addr | tr ' ' :`
 
+  set_led system
+  set_led status
+
   umount /proc /sys /dev
   exec switch_root /mnt/root /sbin/init
 }
@@ -41,6 +68,11 @@ gnubee_boot(){
    modprobe mmc_block
 
    modprobe ext4
+
+   modprobe gpio_keys_polled
+   modprobe evdev
+
+   set_led system 200 800
 
    echo "/sbin/mdev" > /proc/sys/kernel/hotplug
    mdev -s
@@ -73,6 +105,16 @@ gnubee_boot(){
 	ip link add link eth0 name eth0.2 type vlan id 2
    fi
 
+   if evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
+       # Blue RJ-45 uses DHCP
+       ifconfig eth0.2 up ; udhcpc -b -i eth0.2 -s /udhcpc.script > /dev/null 2>&1
+       # Black RJ-45 has a static address (nearest to power jack).
+       ifconfig eth0.1 192.168.10.1
+       dropbear
+       set_led system 800 200
+
+       run_shell /dev/ttyS0
+   fi
 
    echo -n "Searching for partition GNUBEE-ROOT..." > /dev/kmsg
 
@@ -95,9 +137,9 @@ gnubee_boot(){
        else
 	   PATH=.:$PATH
 	   export PATH
-	   tty=/dev/ttyS0
-	   stty erase '^h' < $tty > $tty
-	   exec setsid sh -c "exec sh < $tty > $tty 2>&1"
+	   set_led system
+	   set_led status 800 200
+	   run_shell /dev/ttyS0
        fi
    done
 }

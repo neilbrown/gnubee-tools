@@ -117,7 +117,7 @@ else
     echo "!! debootstrap not installed"
 fi
 # now optional binaries
-for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm $debootstrap_bins ; do
+for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm evtest ntpdate $debootstrap_bins ; do
     path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
 	echo $"$b not found, not installing"
