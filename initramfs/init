@@ -26,73 +26,73 @@ run_shell() {
 }
 
 gnubee_switch_root(){
-  echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
-  r=`uname -r`
-  if [ -d /mnt/root/lib/modules/$r ] &&
-     [ -f /mnt/root/lib/modules/stamp ] &&
-     [ " `cat /lib/modules/stamp`" = " `cat /mnt/root/lib/modules/stamp`" ]
-  then : skip - already installed
-  else
-     # ensure modules are available
-     mount -t tmpfs tmpfs /mnt/root/lib/modules
-     cp -a /lib/modules/. /mnt/root/lib/modules/
-     # swconfig might be useful too
-     [ -f /bin/swconfig ] && cp /bin/swconfig /mnt/root/lib/modules
-     # and "keep" is needed of course
-     cp /keep /mnt/root/lib/modules/
-  fi
+    echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
+    r=`uname -r`
+    if [ -d /mnt/root/lib/modules/$r ] &&
+	   [ -f /mnt/root/lib/modules/stamp ] &&
+	   [ " `cat /lib/modules/stamp`" = " `cat /mnt/root/lib/modules/stamp`" ]
+    then : skip - already installed
+    else
+	# ensure modules are available
+	mount -t tmpfs tmpfs /mnt/root/lib/modules
+	cp -a /lib/modules/. /mnt/root/lib/modules/
+	# swconfig might be useful too
+	[ -f /bin/swconfig ] && cp /bin/swconfig /mnt/root/lib/modules
+	# and "keep" is needed of course
+	cp /keep /mnt/root/lib/modules/
+    fi
 
-  # extract MAC address from 'factory' partition
-  addr=`dd 2> /dev/null if=/dev/mtd2 bs=1 skip=57344 count=6 | od -t x1 -A none`
-  ip link set eth0 address `echo $addr | tr ' ' :`
+    # extract MAC address from 'factory' partition
+    addr=`dd 2> /dev/null if=/dev/mtd2 bs=1 skip=57344 count=6 | od -t x1 -A none`
+    ip link set eth0 address `echo $addr | tr ' ' :`
 
-  set_led system
-  set_led status
+    set_led system
+    set_led status
 
-  umount /proc /sys /dev
-  exec switch_root /mnt/root /sbin/init
+    umount /proc /sys /dev
+    exec switch_root /mnt/root /sbin/init
 }
 
 gnubee_boot(){
-   mount -t proc none /proc
-   mount -t sysfs none /sys
-   mount -t devtmpfs devtmpfs /dev
-   mkdir /dev/pts
-   mount -t devpts devpts /dev/pts
+    mount -t proc none /proc
+    mount -t sysfs none /sys
+    mount -t devtmpfs devtmpfs /dev
+    mkdir /dev/pts
+    mount -t devpts devpts /dev/pts
 
-   modprobe ahci
-   modprobe xhci_mtk
-   modprobe usb_storage
-   modprobe sd_mod
-   modprobe mtk_sd
-   modprobe mmc_block
+    modprobe ahci
+    modprobe xhci_mtk
+    modprobe usb_storage
+    modprobe sd_mod
+    modprobe mtk_sd
+    modprobe mmc_block
 
-   modprobe ext4
+    modprobe ext4
 
-   modprobe gpio_keys_polled
-   modprobe evdev
+    modprobe gpio_keys_polled
+    modprobe evdev
 
-   set_led system 200 800
+    set_led system 200 800
 
-   echo "/sbin/mdev" > /proc/sys/kernel/hotplug
-   mdev -s
+    echo "/sbin/mdev" > /proc/sys/kernel/hotplug
+    mdev -s
 
-   echo -n ""
+    echo -n ""
 
-   echo -n "Waiting disk spinup..." > /dev/kmsg
-   sleep 3
-   echo "done." > /dev/kmsg
+    echo -n "Waiting disk spinup..." > /dev/kmsg
+    sleep 3
+    echo "done." > /dev/kmsg
 
-   echo "" > /proc/sys/kernel/hotplug
+    echo "" > /proc/sys/kernel/hotplug
 
-   if test -x /bin/mdadm; then
+    if test -x /bin/mdadm; then
 	modprobe md_mod
 	echo 1 >  /sys/module/md_mod/parameters/start_ro
 	echo "Assembling md arrays" > /dev/kmsg
 	mdadm --assemble --scan --auto=md --run --freeze-reshape
-   fi
+    fi
 
-   if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
+    if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
 	swconfig dev switch0 set reset
 	swconfig dev switch0 set enable_vlan 1
 	swconfig dev switch0 vlan 1 set ports '0 6t'
@@ -103,45 +103,45 @@ gnubee_boot(){
 	ifconfig eth0 up
 	ip link add link eth0 name eth0.1 type vlan id 1
 	ip link add link eth0 name eth0.2 type vlan id 2
-   fi
+    fi
 
-   if evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
-       # Blue RJ-45 uses DHCP
-       ifconfig eth0.2 up ; udhcpc -b -i eth0.2 -s /udhcpc.script > /dev/null 2>&1
-       # Black RJ-45 has a static address (nearest to power jack).
-       ifconfig eth0.1 192.168.10.1
-       dropbear
-       set_led system 800 200
+    if evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
+	# Blue RJ-45 uses DHCP
+	ifconfig eth0.2 up ; udhcpc -b -i eth0.2 -s /udhcpc.script > /dev/null 2>&1
+	# Black RJ-45 has a static address (nearest to power jack).
+	ifconfig eth0.1 192.168.10.1
+	dropbear
+	set_led system 800 200
 
-       run_shell /dev/ttyS0
-   fi
+	run_shell /dev/ttyS0
+    fi
 
-   echo -n "Searching for partition GNUBEE-ROOT..." > /dev/kmsg
+    echo -n "Searching for partition GNUBEE-ROOT..." > /dev/kmsg
 
-   sleep 1
+    sleep 1
 
-   while true; do
-       crypt_root=`findfs PARTLABEL=GNUBEE-CRYPT-ROOT`
-       if test -n "$crypt_root"; then
-           cryptsetup open "$crypt_root" rootdev
-           root_dev="/dev/mapper/rootdev"
-       else
-           root_dev=`findfs LABEL=GNUBEE-ROOT`
-       fi
+    while true; do
+	crypt_root=`findfs PARTLABEL=GNUBEE-CRYPT-ROOT`
+	if test -n "$crypt_root"; then
+	    cryptsetup open "$crypt_root" rootdev
+	    root_dev="/dev/mapper/rootdev"
+	else
+            root_dev=`findfs LABEL=GNUBEE-ROOT`
+	fi
 
-       if test -n "$root_dev" &&
-               mount -o ro $root_dev /mnt/root &&
-               test -L /mnt/root/sbin/init -o -e /mnt/root/sbin/init &&
-               gnubee_switch_root
-       then break
-       else
-	   PATH=.:$PATH
-	   export PATH
-	   set_led system
-	   set_led status 800 200
-	   run_shell /dev/ttyS0
-       fi
-   done
+	if test -n "$root_dev" &&
+		mount -o ro $root_dev /mnt/root &&
+		test -L /mnt/root/sbin/init -o -e /mnt/root/sbin/init &&
+		gnubee_switch_root
+	then break
+	else
+	    PATH=.:$PATH
+	    export PATH
+	    set_led system
+	    set_led status 800 200
+	    run_shell /dev/ttyS0
+	fi
+    done
 }
 
 gnubee_boot
