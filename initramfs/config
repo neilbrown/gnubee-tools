@@ -81,6 +81,8 @@ set_net() {
 		read GATE
 		echo -n "DNS server (8.8.8.8)? "
 		read DNS
+		echo "### If you have chosen a new IP address, your connection will"
+		echo "### stop working now.  Re-connect with hthe new address."
 		killall udhcpc
 		ifconfig $dev ${IP:-192.168.1.10} up netmask ${NETMASK:-255.255.255.0}
 		route add default  gw ${GATE:-$gw}
