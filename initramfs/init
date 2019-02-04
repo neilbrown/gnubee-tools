@@ -24,7 +24,7 @@ run_shell() {
     export PATH
     tty=$1
     stty erase '^h' < $tty > $tty
-    exec setsid sh -c "exec sh < $tty > $tty 2>&1"
+    setsid sh -c "exec sh < $tty > $tty 2>&1"
 }
 
 gnubee_switch_root(){
