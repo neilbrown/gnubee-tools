@@ -74,26 +74,6 @@ gnubee_boot(){
     modprobe gpio_keys_polled
     modprobe evdev
 
-    set_led system 200 800
-
-    echo "/sbin/mdev" > /proc/sys/kernel/hotplug
-    mdev -s
-
-    echo -n ""
-
-    echo -n "Waiting disk spinup..." > /dev/kmsg
-    sleep 3
-    echo "done." > /dev/kmsg
-
-    echo "" > /proc/sys/kernel/hotplug
-
-    if test -x /bin/mdadm; then
-	modprobe md_mod
-	echo 1 >  /sys/module/md_mod/parameters/start_ro
-	echo "Assembling md arrays" > /dev/kmsg
-	mdadm --assemble --scan --auto=md --run --freeze-reshape
-    fi
-
     if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
 	swconfig dev switch0 set reset
 	swconfig dev switch0 set enable_vlan 1
@@ -108,17 +88,25 @@ gnubee_boot(){
     fi
 
     if evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
+	set_led system 800 200
 	# Blue RJ-45 uses DHCP
 	ifconfig eth0.2 up ; udhcpc -b -i eth0.2 -s /udhcpc.script > /dev/null 2>&1
 	# Black RJ-45 has a static address (nearest to power jack).
 	ifconfig eth0.1 192.168.10.1
 	dropbear
-	set_led system 800 200
 
 	run_shell /dev/ttyS0
     fi
 
     echo -n "Searching for partition GNUBEE-ROOT..." > /dev/kmsg
+    set_led system 200 800
+
+    if test -x /bin/mdadm; then
+	modprobe md_mod
+	echo 1 >  /sys/module/md_mod/parameters/start_ro
+	echo "Assembling md arrays" > /dev/kmsg
+	mdadm --assemble --scan --auto=md --run --freeze-reshape
+    fi
 
     sleep 1
 
