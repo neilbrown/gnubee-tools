@@ -47,7 +47,7 @@ Other packages for the GnuBee that are optional but give more functionality
 in the initramfs are:
 
 	sudo apt-get install mdadm dropbear cryptsetup-bin \
-		mtd-utils u-boot-tools
+		mtd-utils u-boot-tools evtest
 
 If you want to build firmware that can be used to install debian, you
 also need
@@ -83,6 +83,9 @@ memory -- consider doing this elsewhere and coping the result over.
 Alternately, use
 
 	wget  https://github.com/neilbrown/linux/archive/gnubee/v4.4.zip
+	unzip v4.4.zip
+	cd linux-gnubee-v4.4
+	../gnubee-tools/scripts/gbmake firmware gbpc1-4.4
 
 
 If you want to just run `gbmake firmware` without the full path, you
