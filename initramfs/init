@@ -20,6 +20,8 @@ set_led() {
 }
 
 run_shell() {
+    PATH=.:$PATH
+    export PATH
     tty=$1
     stty erase '^h' < $tty > $tty
     exec setsid sh -c "exec sh < $tty > $tty 2>&1"
@@ -135,8 +137,6 @@ gnubee_boot(){
 		gnubee_switch_root
 	then break
 	else
-	    PATH=.:$PATH
-	    export PATH
 	    set_led system
 	    set_led status 800 200
 	    run_shell /dev/ttyS0
