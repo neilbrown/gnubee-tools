@@ -31,11 +31,20 @@ set_host() {
     return 1
 }
 
+check_net() {
+    net_dev=`ip route show match 0/0 | awk '$4 == "dev" {print $5 }'`
+    if [ -z "$net_dev" ]; then
+	return 1
+    fi
+
+    net_ip=`ip addr show $net_dev | awk '$1 == "inet" {print $2; exit}'`
+    return 0
+}
+
 set_net() {
-    if route -n 2> /dev/null | grep '^0\.0\.0\.0' > /dev/null; then
-	ip=`ip addr show | awk '$1 == "inet" { print $2;exit}'`
+    if check_net; then
 	[ -f /etc/resolv.conf ] || echo nameserver 8.8.8.8 > /etc/resolv.conf
-	echo "## network configured - $ip"
+	echo "## network configured - $net_ip"
 	return 0
     fi
     if ps | grep '[u]dhcpc' > /dev/null; then
@@ -131,8 +140,8 @@ fixup_net_dhcp() {
 fixup_net_static() {
     dev=$1 ip=$2 script=$3
     f=`echo $dev | tr . -`
-    set `route -n | grep '^0\.0\.0.\0'`
-    gateway=$2
+    gateway=`ip route show match 0/0 | awk '$2 == "via" {print $3}'`
+
     cat > $mp/etc/network/interfaces.d/02-$f <<- EOF
 	auto $dev
 	iface $dev inet static
@@ -152,21 +161,19 @@ fixup_net() {
 	iface lo inet loopback
 	EOF
 
-    # FIXME this currenty assumes eth0.0 and eth0.1 are the two
-    # interfaces.  This won't be true with mainline.
-    ip_1=`ip addr show eth0.1 | awk '$1 == "inet" {print $2; exit}'`
-    ip_2=`ip addr show eth0.2 | awk '$1 == "inet" {print $2; exit}'`
-    dev=eth0.1
-    if [ -n "$ip_2" ]; then
-	dev=eth0.2
+    if check_net; then
+	:
+    else
+	echo "WARNING: network is not configured - something wrong WARNING"
+	return 1
     fi
-    if ps | grep "[u]dhcp.*-i $dev" > /dev/null; then
+
+    if ps | grep "[u]dhcp.*-i $net_dev" > /dev/null; then
 	fixup_net_dhcp eth0 no_switch
 	fixup_net_dhcp eth0.1 set_switch
     else
-	ip=`ip addr show $dev | awk '$1 == "inet" { print $2;exit}'`
-	fixup_net_static eth0 $ip no_switch
-	fixup_net_static eth0.1 $ip set_switch
+	fixup_net_static eth0 $net_ip no_switch
+	fixup_net_static eth0.1 $net_ip set_switch
     fi
 }
 
@@ -192,5 +199,10 @@ fixup() {
 until set_host && set_net && create_filesystem && bootstrap && fixup; do
     :
 done
+
+umount /tmp/newroot
+if check_net && [ $net_dev != "eth0" -a $net_dev != "eth0.1" ]; then
+    echo "### REMEMBER: plug the network cable into the first (black) port for normal boot".
+fi
 
 echo "## Ready to reboot -f!!"
