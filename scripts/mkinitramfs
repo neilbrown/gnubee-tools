@@ -139,7 +139,7 @@ if [ -f bin/dropbear ]; then
 		 cat /tmp/drop$$.key" >  $builddir/dropbear/dropbear_ecdsa_host_key
     fi
     cp $builddir/dropbear/* etc/dropbear
-    echo passwd: files > etc/nsswitch.conf
+    echo passwd: files >> etc/nsswitch.conf
     echo group: files >> etc/nsswitch.conf
     echo > etc/passwd root:x:0:0:root:/:/bin/sh
     echo > etc/group  root:x:0:
@@ -149,6 +149,9 @@ if [ -f bin/dropbear ]; then
     libs="$libs /lib/mipsel-linux-gnu/libnss_files.so.2"
 fi
 
+# ntpdate need to find the ntp service
+echo ntp 123/tcp >> etc/services
+echo ntp 123/udp >> etc/services
 
 # Now we might need to build swconfig.
 if [ -f $builddir/include/linux/switch.h ]; then

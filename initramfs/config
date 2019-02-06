@@ -92,6 +92,18 @@ set_net() {
     return 1
 }
 
+set_time() {
+    rm -f /tmp/stamp
+    > /tmp/stamp
+    newer=`find /init -newer /tmp/stamp`
+    if [ -z "$newer" ]; then
+	echo "## time is set: `date`"
+        return 0
+    fi
+    ntpdate pool.ntp.org
+    return 1
+}
+
 create_filesystem() {
     if grep $mp /proc/mounts > /dev/null ; then
 	echo "## $mp mounted"
@@ -198,7 +210,7 @@ fixup() {
     return 0
 }
 
-until set_host && set_net && create_filesystem && bootstrap && fixup; do
+until set_host && set_net && set_time && create_filesystem && bootstrap && fixup; do
     :
 done
 
