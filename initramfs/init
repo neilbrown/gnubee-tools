@@ -44,6 +44,19 @@ gnubee_switch_root(){
 	cp /keep /mnt/root/lib/modules/
     fi
 
+    # stop and unused md arrays, so they can be restarted with
+    # the correct name
+    mdadm -Ss > /dev/null 2>&1
+
+    # Disable vlans - config should be up to normal user-space
+    if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
+	swconfig dev switch0 set reset
+	swconfig dev switch0 set enable_vlan 0
+	swconfig dev switch0 set apply
+	ip link delete eth0.1
+	ip link delete eth0.2
+    fi
+
     # extract MAC address from 'factory' partition
     addr=`dd 2> /dev/null if=/dev/mtd2 bs=1 skip=57344 count=6 | od -t x1 -A none`
     ip link set eth0 address `echo $addr | tr ' ' :`
