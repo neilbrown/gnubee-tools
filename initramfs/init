@@ -100,7 +100,21 @@ gnubee_boot(){
 	ip link add link eth0 name eth0.2 type vlan id 2
     fi
 
-    if evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
+    # Wait for devices to appear
+    sleep 2
+
+    # Load a config file
+    blkid -t TYPE=vfat -o device | while read path; do
+	modprobe vfat
+	if mount -t vfat $path /mnt; then
+	    cat /mnt/gnubee-config.txt >> /gnubee-config.txt
+	    umount /mnt
+	fi
+	rmmod vfat
+    done
+    [ -f /gnubee-config.txt ] && source /gnubee-config.txt
+
+    if [ " $CONFIGURE_NET" = " yes" ] || evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
 	set_led system 800 200
 	# Blue RJ-45 uses DHCP
 	ifconfig eth0.2 up ; udhcpc -b -i eth0.2 -s /udhcpc.script > /dev/null 2>&1
@@ -108,6 +122,11 @@ gnubee_boot(){
 	ifconfig eth0.1 192.168.10.1
 	dropbear
 
+	run_shell /dev/ttyS0
+    fi
+
+    if [ " $CONSOLE_SHELL" = " yes" ]; then
+	set_led status 800 200
 	run_shell /dev/ttyS0
     fi
 
