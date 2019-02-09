@@ -60,7 +60,7 @@ gnubee_switch_root(){
     set_led system
     set_led status
 
-    umount /proc /sys /dev
+    umount -l /proc /sys /dev/pts /dev
     exec switch_root /mnt/root /sbin/init
 }
 
