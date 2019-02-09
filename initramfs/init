@@ -19,6 +19,19 @@ set_led() {
     )
 }
 
+udhcpd_config() {
+    if=$1
+    net=$2
+    {
+	echo "start $net.10"
+	echo "end $net.250"
+	echo "interface $if"
+	echo "lease_file /tmp/udhcpd.leases"
+	echo "pidfile /tmp/udhcpd.pid"
+	echo "opt subnet 255.255.255.0"
+    } > /udhcpd.conf
+}
+
 run_shell() {
     PATH=.:$PATH
     export PATH
@@ -43,6 +56,10 @@ gnubee_switch_root(){
 	# and "keep" is needed of course
 	cp /keep /mnt/root/lib/modules/
     fi
+
+    # kill and dhcp daemon running
+    killall udhcpd
+    killall udhcpc
 
     # stop and unused md arrays, so they can be restarted with
     # the correct name
@@ -118,8 +135,10 @@ gnubee_boot(){
 	set_led system 800 200
 	# Blue RJ-45 uses DHCP
 	ifconfig eth0.2 up ; udhcpc -b -i eth0.2 -s /udhcpc.script > /dev/null 2>&1
-	# Black RJ-45 has a static address (nearest to power jack).
+	# Black RJ-45 (nearest to power jack) has a static address and DHCP server
 	ifconfig eth0.1 192.168.10.1
+	udhcpd_config eth0.1 192.168.10
+	udhcpd /udhcpd.conf
 	dropbear
 
 	run_shell /dev/ttyS0
