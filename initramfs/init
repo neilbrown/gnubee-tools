@@ -65,14 +65,10 @@ gnubee_switch_root(){
     # the correct name
     mdadm -Ss > /dev/null 2>&1
 
-    # Disable vlans - config should be up to normal user-space
-    if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
-	swconfig dev switch0 set reset
-	swconfig dev switch0 set enable_vlan 0
-	swconfig dev switch0 set apply
-	ip link delete eth0.1
-	ip link delete eth0.2
-    fi
+    # 'down' the network interfaces, but leave the vlans in place
+    # as user-space will expect there.
+    ifconfig eth0.1 down
+    ifconfig eth0.2 down
 
     set_led system
     set_led status
