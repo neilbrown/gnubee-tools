@@ -41,6 +41,17 @@ check_net() {
     return 0
 }
 
+set_passwd() {
+    if grep 'l80E2NNrh32z0N$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6Nkx' /etc/shadow > /dev/null
+    then :
+    else echo "## root password changed"
+	 return 0
+    fi
+    echo "Please set the root password."
+    passwd root
+    return 1
+}
+
 set_net() {
     if check_net; then
 	[ -f /etc/resolv.conf ] || echo nameserver 8.8.8.8 > /etc/resolv.conf
@@ -198,7 +209,8 @@ fixup_modules() {
 
 fixup() {
     hostname > $mp/etc/hostname
-    sed -i "s/^root:\*:/root:\$6\$l80E2NNrh32z0N\$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6NkxW3eLCvLbw05tMKkbyRlieU1QeZ4tngZpaS9Fnf0:/" $mp/etc/shadow
+    root=`grep '^root:' /etc/shadow`
+    sed -i "s,^root:.*,$root," $mp/etc/shadow
     set `grep " $mp " /proc/mounts`
     sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' $mp/etc/ssh/sshd_config
     case $1 in
@@ -210,7 +222,7 @@ fixup() {
     return 0
 }
 
-until set_host && set_net && set_time && create_filesystem && bootstrap && fixup; do
+until set_host && set_passwd && set_net && set_time && create_filesystem && bootstrap && fixup; do
     :
 done
 

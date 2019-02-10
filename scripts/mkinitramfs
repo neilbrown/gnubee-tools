@@ -117,7 +117,7 @@ else
     echo "!! debootstrap not installed"
 fi
 # now optional binaries
-for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm evtest ntpdate $debootstrap_bins ; do
+for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm evtest ntpdate passwd $debootstrap_bins ; do
     path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
 	echo $"$b not found, not installing"
@@ -147,7 +147,16 @@ if [ -f bin/dropbear ]; then
     # root password is GnuBee
     echo > etc/shadow 'root:$6$l80E2NNrh32z0N$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6NkxW3eLCvLbw05tMKkbyRlieU1QeZ4tngZpaS9Fnf0::0:99999:7:::'
     libs="$libs /lib/mipsel-linux-gnu/libnss_files.so.2"
+    if [ -f bin/passwd ]; then
+	# need pam modules too
+	echo 'passwd password required pam_unix.so sha512' > etc/pam.conf
+	mkdir -p lib/mipsel-linux-gnu/security
+	path=lib/mipsel-linux-gnu/security/pam_unix.so
+	$remote cat /$path > $path
+	libs="$libs `$remote ldd "/$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
+    fi
 fi
+
 
 # ntpdate need to find the ntp service
 echo ntp 123/tcp >> etc/services
