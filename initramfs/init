@@ -166,16 +166,18 @@ gnubee_boot(){
             root_dev=`findfs LABEL=GNUBEE-ROOT`
 	fi
 
+	mounttype=
 	# Make sure filesystem module is loaded for $root_dev
 	if [ -n "$root_dev" ]; then
 	    eval `blkid $root_dev -o udev`
 	    if [ -n "$ID_FS_TYPE" ]; then
 		modprobe fs-$ID_FS_TYPE
+		mounttype="-t $ID_FS_TYPE"
 	    fi
 	fi
 
 	if test -n "$root_dev" &&
-		mount -o ro $root_dev /mnt/root &&
+		mount $mounttype -o ro $root_dev /mnt/root &&
 		test -L /mnt/root/sbin/init -o -e /mnt/root/sbin/init &&
 		gnubee_switch_root
 	then break
