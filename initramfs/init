@@ -58,8 +58,8 @@ gnubee_switch_root(){
     fi
 
     # kill and dhcp daemon running
-    killall udhcpd
-    killall udhcpc
+    killall udhcpd > /dev/null 2>&1
+    killall udhcpc > /dev/null 2>&1
 
     # stop and unused md arrays, so they can be restarted with
     # the correct name
