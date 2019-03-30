@@ -188,9 +188,13 @@ gnubee_boot(){
 	# Blue RJ-45 uses DHCP
 	ifconfig $BLUE up ; udhcpc -b -i $BLUE -s /udhcpc.script > /dev/null 2>&1
 	# Black RJ-45 (nearest to power jack) has a static address and DHCP server
-	ifconfig $BLACK 192.168.10.1
-	udhcpd_config $BLACK 192.168.10
-	udhcpd /udhcpd.conf
+	if [ " $CONFIGURE_BLACK_IP" != " " ]; then
+	    ifconfig $BLACK $CONFIGURE_BLACK_IP up
+	else
+	    ifconfig $BLACK 192.168.10.1
+	    udhcpd_config $BLACK 192.168.10
+	    udhcpd /udhcpd.conf
+	fi
 	dropbear
 
 	run_shell /dev/ttyS0

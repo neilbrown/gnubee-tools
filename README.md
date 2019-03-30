@@ -138,11 +138,28 @@ notice and will not even look for GNUBEE_ROOT but will start a shell
 and, importantly, configure the network and start the "dropbear" ssh
 daemon.
 
-The first network port (black) is configured with address
+The first network port (black) is by default configured with address
 192.168.10.1.  The second (blue) port is configured to use DHCP to
 request an address.  You can use whichever of these is more
 convenient.  To login you will need to know the root password which is
 "GnuBee".
+
+You can over-ride some defaults by created a VFAT filesystem on a USB
+storage device, and placing the file `gnubee-config.txt` on the root
+directory.  Then plugging this device in during boot.  The file should
+contains "name=value" assignments, one per line.  Following names are
+meaningful.
+
+- `CONFIGURE_NET=yes` - this is equivalent to holding the black button
+   during boot
+
+- `CONFIGURE_BLACK_IP=xx.xx.xx.xx` - If the network is being
+  configure, either due to the button being pressed or due to
+  CONFIGURE_NET, the Black network port is configured to the given
+  IP address, and the DHCP server is not run.
+
+- `CONSOLE_SHELL=yes` - this is equivalent to not finding GNUBEE-ROOT,
+   a console shell is run, but the network is not configured.
 
 Once you are logged in you can modify the network configuration (if,
 for example, you want some other static IP, or need to specify a
