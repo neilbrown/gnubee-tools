@@ -7,11 +7,11 @@ the GnuBee NAS platform - See www.gnubee.org.
 Currently the primary focus is building a firmware
 image to boot into the Linux kernel.
 
-A normal boot requires that an ext4 root filesystem already exists;
+A normal boot requires that a root filesystem already exists;
 this can be on an SD card, USB storage, or SATA device (including
-md-raid).
+md-raid or LVM2).
 This filesystem must be named "GNUBEE-ROOT" and `findfs` must be able
-to find it.
+to find it.  The default config only builds support for xfs and ext4.
 
 This package contains config files and scripts to build a kernel
 and an initramfs, in a format that can be written to flash.
@@ -91,6 +91,11 @@ Alternately, use
 If you want to just run `gbmake firmware` without the full path, you
 can `ln -s` the script to a `bin` directory.  Don't copy it as it
 won't work like that.
+
+Note that Linux-5.1 pre-release code is also available - simply
+replace '4.4' with '5.1' in the above.  With 5.1 there is the
+option of "gbpc2-5.1" which supports the 3.5inch PC2 and includes
+support for the 3rd network port.
 
 Installing
 ----------
