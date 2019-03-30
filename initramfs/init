@@ -40,6 +40,18 @@ run_shell() {
     setsid sh -c "exec sh < $tty > $tty 2>&1"
 }
 
+need_fix_interfaces() {
+    if ip link | grep ethbl > /dev/null &&
+	    [ -d /mnt/root/etc/network ]; then
+	if grep ethbl /mnt/root/etc/network/interfaces \
+		/mnt/root/etc/network/interfaces.d/* > /dev/null ; then
+	    # already fixed
+	    return 1;
+	fi
+    fi
+    return 0
+}
+
 gnubee_switch_root(){
     echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
     r=`uname -r`
@@ -57,6 +69,25 @@ gnubee_switch_root(){
 	cp /keep /mnt/root/lib/modules/
     fi
 
+    # If this kernel uses ethblack and ethblue, and /etc/network/interfaces*
+    # doesn't mention them, then we need to do something, else host will
+    # be inaccessible if there is no console.
+    # So copy /etc/network to /etc/network.dup, change the eth names, and
+    # bind-mount it over.
+    if need_fix_interfaces; then
+	cp -r /mnt/root/etc/network /tmp/network
+	mount -t tmpfs tmfs /mnt/root/etc/network
+	cp -r /tmp/network/. /mnt/root/etc/network/.
+	sed -i -e '/^[^#]/s/eth0.1/ethblack/' -e '/^[^#]/s/eth0.2/ethblue/' \
+	    /mnt/root/etc/network/interfaces /mnt/root/etc/network/interfaces.d/*
+	# This kernel supports the switch through DSA, so set_switch cannot see it.
+	( cd /mnt/root/etc/network/script.d
+	  [ -f no_switch ] && echo exit 1 > no_switch
+	  [ -f set_switch ] && echo exit 0 > set_switch
+	  )
+	echo ===== Created temporary /etc/network to handle new interface names ======
+    fi
+
     # kill and dhcp daemon running
     killall udhcpd > /dev/null 2>&1
     killall udhcpc > /dev/null 2>&1
@@ -66,15 +97,26 @@ gnubee_switch_root(){
     mdadm -Ss > /dev/null 2>&1
 
     # 'down' the network interfaces, but leave the vlans in place
-    # as user-space will expect there.
-    ifconfig eth0.1 down
-    ifconfig eth0.2 down
+    # as user-space will expect them.  eth0 needs to stay up so
+    # that the vlan/DSA interfaces work
+    for dev in eth0.1 eth0.2 ethblack ethblue eth1
+    do
+	ifconfig $dev down
+    done
 
     set_led system
     set_led status
 
     umount -l /proc /sys /dev/pts /dev
     exec switch_root /mnt/root /sbin/init
+}
+
+next_addr() {
+    # "increment" last nibble of address
+    addr=`echo $1 | sed 's/.$//'`
+    last=`echo $1 | sed 's/^.*\(.\)$/\1/'`
+    next=`echo $last | tr '0-9a-f' '1-9a-f0'`
+    echo "$addr$next"
 }
 
 gnubee_boot(){
@@ -94,13 +136,17 @@ gnubee_boot(){
     modprobe ext4
 
     modprobe gpio_keys_polled
+    modprobe gpio_keys
     modprobe evdev
 
     # extract MAC address from 'factory' partition
     addr=`dd 2> /dev/null if=/dev/mtd2 bs=1 skip=57344 count=6 | od -t x1 -A none`
-    ip link set eth0 address `echo $addr | tr ' ' :`
 
+
+    # eth0 needs to be up to able to access ports through the switch
+    ifconfig eth0 up
     if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
+	ip link set eth0 address `echo $addr | tr ' ' :`
 	swconfig dev switch0 set reset
 	swconfig dev switch0 set enable_vlan 1
 	swconfig dev switch0 vlan 1 set ports '0 6t'
@@ -108,9 +154,19 @@ gnubee_boot(){
 	swconfig dev switch0 port 0 set pvid 1
 	swconfig dev switch0 port 4 set pvid 2
 	swconfig dev switch0 set apply
-	ifconfig eth0 up
 	ip link add link eth0 name eth0.1 type vlan id 1
 	ip link add link eth0 name eth0.2 type vlan id 2
+	BLACK=eth0.1
+	BLUE=eth0.2
+    else
+	# Hopefully a new kernel with DSA support
+	ip link set ethblack address `echo $addr | tr ' ' :`
+	addr=`next_addr "$addr"`
+	ip link set ethblue address `echo $addr | tr ' ' :`
+	addr=`next_addr "$addr"`
+	ip link set eth1 address `echo $addr | tr ' ' :`
+	BLACK=ethblack
+	BLUE=ethblue
     fi
 
     # Wait for devices to appear
@@ -130,10 +186,10 @@ gnubee_boot(){
     if [ " $CONFIGURE_NET" = " yes" ] || evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
 	set_led system 800 200
 	# Blue RJ-45 uses DHCP
-	ifconfig eth0.2 up ; udhcpc -b -i eth0.2 -s /udhcpc.script > /dev/null 2>&1
+	ifconfig $BLUE up ; udhcpc -b -i $BLUE -s /udhcpc.script > /dev/null 2>&1
 	# Black RJ-45 (nearest to power jack) has a static address and DHCP server
-	ifconfig eth0.1 192.168.10.1
-	udhcpd_config eth0.1 192.168.10
+	ifconfig $BLACK 192.168.10.1
+	udhcpd_config $BLACK 192.168.10
 	udhcpd /udhcpd.conf
 	dropbear
 

@@ -2,7 +2,7 @@
 case $1 in
     deconfig )
 	route delete default > /dev/null 2>&1
-	ip address flush dev eth0.1
+	ip address flush dev $interface
 	;;
     bound)
 	ip address add $ip/$mask dev $interface

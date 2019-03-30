@@ -69,7 +69,7 @@ set_net() {
 	killall udhcpc
     fi
 
-    dev=eth0
+    dev=ethblack
     case `swconfig list` in
 	*switch0* ) dev=eth0.1
     esac
@@ -194,10 +194,10 @@ fixup_net() {
     fi
 
     if ps | grep "[u]dhcp.*-i $net_dev" > /dev/null; then
-	fixup_net_dhcp eth0 no_switch
+	fixup_net_dhcp ethblack no_switch
 	fixup_net_dhcp eth0.1 set_switch
     else
-	fixup_net_static eth0 $net_ip no_switch
+	fixup_net_static ethblack $net_ip no_switch
 	fixup_net_static eth0.1 $net_ip set_switch
     fi
 }
@@ -227,7 +227,7 @@ until set_host && set_passwd && set_net && set_time && create_filesystem && boot
 done
 
 umount /tmp/newroot
-if check_net && [ $net_dev != "eth0" -a $net_dev != "eth0.1" ]; then
+if check_net && [ $net_dev != "ethblack" -a $net_dev != "eth0.1" ]; then
     echo "### REMEMBER: plug the network cable into the first (black) port for normal boot".
 fi
 
