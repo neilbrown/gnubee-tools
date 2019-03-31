@@ -137,8 +137,23 @@ gnubee_bin() {
 	then
 		ls -lh /srv/tftpboot/GB-PCx_uboot.bin
 	fi
-	cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" "$GNUBEE_BUILD_DIR/gnubee.bin"
-	ls -lh "$GNUBEE_BUILD_DIR/gnubee.bin"
+	V=`sed -n 's/^VERSION = //p' Makefile`
+	P=`sed -n 's/^PATCHLEVEL = //p' Makefile`
+	S=`sed -n 's/^SUBLEVEL = //p' Makefile`
+	X=`sed -n 's/^EXTRAVERSION = //p' Makefile`
+	if [ " $S" = " " -o " $S" = " 0" ]; then
+	    vers="$V.$P$X"
+	else
+	    vers="$Vp.$P.$S$X"
+	fi
+	if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+	    suffix="${vers}-gbpc2"
+	else
+	    suffix="${vers}-gbpc1"
+	fi
+
+	cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+	ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
 }
 
 gnubee_firmware() {
