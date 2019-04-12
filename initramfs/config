@@ -70,7 +70,7 @@ set_net() {
     fi
 
     dev=ethblack
-    case `swconfig list` in
+    case `[ -x /sbin/swconfig ] && swconfig list` in
 	*switch0* ) dev=eth0.1
     esac
     echo -n "Configure network ($dev) [s]tatic [d]hcp or [m]anual? "
@@ -180,7 +180,7 @@ fixup_net_static() {
 fixup_net() {
     mkdir -p $mp/etc/network/scripts.d
     cp /network-scripts/* $mp/etc/network/scripts.d
-    cp /bin/swconfig $mp/sbin/swconfig
+    [ -f /bin/swconfig ] && cp /bin/swconfig $mp/sbin/swconfig
     cat > $mp/etc/network/interfaces.d/01-lo <<- EOF
 	auto lo
 	iface lo inet loopback

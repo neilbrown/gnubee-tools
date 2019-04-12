@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if /sbin/swconfig list | grep switch0 > /dev/null
+if [ -x /sbin/swconfig ] && /sbin/swconfig list | grep switch0 > /dev/null
 then # there is a switch
       swconfig dev switch0 set reset
       swconfig dev switch0 set enable_vlan 1
@@ -11,9 +11,5 @@ then # there is a switch
       swconfig dev switch0 set apply
 
       exit 0
-fi
-if [ -d /sys/class/net/eth0/dsa ]; then
-    # we have DSA support, which enables the switch
-    exit 0
 fi
 exit 1

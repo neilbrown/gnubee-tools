@@ -120,10 +120,11 @@ filesystem.  Subsequent boots will not have /lib/modules mounted.
 Note that this isn't needed if you use "`config`" to create your
 debian install - that will copy the modules in for you.
 
-/lib/modules will also contain a copy of `swconfig` which is used to
-manage the internal network switch.  The code in the initramfs will
-already have configured this, but it might be helpful to have the
-binary to play with.
+When build with a kernel that suppors it, /lib/modules will also
+contain a copy of `swconfig` which is used to manage the internal
+network switch.  The code in the initramfs will already have
+configured this, but it might be helpful to have the binary to play
+with.
 
 Install / Rescue mode
 ---------------------
