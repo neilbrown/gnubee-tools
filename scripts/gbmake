@@ -37,7 +37,7 @@ command.  Known commands are:
  initramfs: create initramfs tree in ${GNUBEE_INITRAMFS_TREE} to be included in kernel
  modules: runs "make modules" then installs modules into the initramfs
  gnubee.bin: "make uImage", then copy to /srv/tftpboot and $GNUBEE_BUILD_DIR
- firmwakre: run all of the above in the correct order
+ firmware: run all of the above in the correct order
  help: display this message
  -h: display help message
 
