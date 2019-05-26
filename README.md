@@ -16,7 +16,7 @@ to find it.  The default config only builds support for xfs and ext4.
 This package contains config files and scripts to build a kernel
 and an initramfs, in a format that can be written to flash.
 
-If "GNUBEE-ROOT" cannot be found, the initramfs drops into a shell.
+If `GNUBEE-ROOT` cannot be found, the initramfs drops into a shell.
 Enough tools are available to configure the network, create md arrays,
 format an ext4 filesystem, and install Debian over the network.
 A script called "config" is available which does much of this for you.
@@ -92,10 +92,9 @@ If you want to just run `gbmake firmware` without the full path, you
 can `ln -s` the script to a `bin` directory.  Don't copy it as it
 won't work like that.
 
-Note that Linux-5.1 pre-release code is also available - simply
-replace '4.4' with '5.1' in the above.  With 5.1 there is the
-option of "gbpc2-5.1" which supports the 3.5inch PC2 and includes
-support for the 3rd network port.
+Note that Linux-5.1 code is also available - simply replace '4.4' with
+'5.1' in the above.  With 5.1 there is the option of "gbpc2-5.1" which
+supports the 3.5inch PC2 and includes support for the 3rd network port.
 
 Installing
 ----------
@@ -120,8 +119,8 @@ filesystem.  Subsequent boots will not have /lib/modules mounted.
 Note that this isn't needed if you use "`config`" to create your
 debian install - that will copy the modules in for you.
 
-When build with a kernel that suppors it, /lib/modules will also
-contain a copy of `swconfig` which is used to manage the internal
+When built with a kernel that supports it, /lib/modules will also
+contain a copy of `swconfig`, which is used to manage the internal
 network switch.  The code in the initramfs will already have
 configured this, but it might be helpful to have the binary to play
 with.
@@ -129,24 +128,24 @@ with.
 Install / Rescue mode
 ---------------------
 
-If the firmware fails to find a filesystem with the label GNUBEE_ROOT,
+If the firmware fails to find a filesystem with the label `GNUBEE-ROOT`,
 it will run a shell on the serial console from which you can repair or
 create such a filesystem.  If you don't have a serial cable, this
 isn't much help.
 
 If you hold the small black button during boot, the firmware will
-notice and will not even look for GNUBEE_ROOT but will start a shell
+notice and will not even look for `GNUBEE-ROOT` but will start a shell
 and, importantly, configure the network and start the "dropbear" ssh
 daemon.
 
 The first network port (black) is by default configured with address
 192.168.10.1.  The second (blue) port is configured to use DHCP to
 request an address.  You can use whichever of these is more
-convenient.  To login you will need to know the root password which is
+convenient.  To login you will need to know the root password, which is
 "GnuBee".
 
-You can over-ride some defaults by created a VFAT filesystem on a USB
-storage device, and placing the file `gnubee-config.txt` on the root
+You can over-ride some defaults by creating a VFAT filesystem on a USB
+storage device and placing a file `gnubee-config.txt` in the root
 directory.  Then plugging this device in during boot.  The file should
 contains "name=value" assignments, one per line.  Following names are
 meaningful.
@@ -155,22 +154,22 @@ meaningful.
    during boot
 
 - `CONFIGURE_BLACK_IP=xx.xx.xx.xx` - If the network is being
-  configure, either due to the button being pressed or due to
-  CONFIGURE_NET, the Black network port is configured to the given
+  configured, either due to the button being pressed or due to
+  `CONFIGURE_NET`, the Black network port is configured to the given
   IP address, and the DHCP server is not run.
 
-- `CONSOLE_SHELL=yes` - this is equivalent to not finding GNUBEE-ROOT,
+- `CONSOLE_SHELL=yes` - this is equivalent to not finding `GNUBEE-ROOT`;
    a console shell is run, but the network is not configured.
 
 Once you are logged in you can modify the network configuration (if,
 for example, you want some other static IP, or need to specify a
-gateway address) and can create and RAID arrays you want etc.
+gateway address) and can create any RAID arrays you want etc.
 You can install Debian at this point using debootstrap.
 
 Much of the work for configuring and installing Debian can be
-performed using a script called "config".  Simply run "config" and
+performed using a script called `config`.  Simply run `config` and
 answer the questions.  You will soon have a minimal Debian
-installation which you can boot into.  From there  you can install
+installation that you can boot into.  From there  you can install
 anything else that you want.
 
 Cross Compiling
@@ -182,7 +181,7 @@ places, such as described in  https://wiki.debian.org/CrossToolchains.
 If you want to compile your own (as I did), here are some steps.
 
 - Install gmp mpfr mpc devel packages
-        
+
         sudo apt-get install libgmp-dev libmpfr-dev libmpc-dev
 
 - collect the source code:
@@ -218,4 +217,4 @@ If you want to compile your own (as I did), here are some steps.
         sudo make install
 
 - Now use `/opt/cross/bin/mipsel-unknown-linux-gnu-` as the
-  CROSS_COMPILE setting in your `config` file.
+  `CROSS_COMPILE` setting in your `config` file.
