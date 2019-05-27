@@ -102,7 +102,7 @@ echo "## copying debootstrap (if present)"
 $remote '(cd /; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )' | tar xf -
 if [ -f bin/debootstrap ]; then
      # let's install everything else needed to bootstrap a debian install
-    debootstrap_bins="blkid mkfs.ext4 tune2fs wget gpgv"
+    debootstrap_bins="mkfs.ext4 tune2fs wget gpgv"
     libs="$libs /lib/mipsel-linux-gnu/libresolv.so.2"
     libs="$libs /lib/mipsel-linux-gnu/libnss_dns.so.2"
 
@@ -117,7 +117,7 @@ else
     echo "!! debootstrap not installed"
 fi
 # now optional binaries
-for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm evtest ntpdate passwd $debootstrap_bins ; do
+for b in blkid cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm evtest ntpdate passwd $debootstrap_bins ; do
     path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
 	echo $"$b not found, not installing"
