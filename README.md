@@ -100,12 +100,12 @@ support for the 3rd network port.
 Installing
 ----------
 
-The image created is placed in `gnubee-tools/build/gnubee.bin`.  If
+The image created is placed in `gnubee-tools/build/gnubee-<version>-<variant>.bin`.  If
 you have this on the GnuBee and have `mtd-utils` installed, you can
-flash it with `flashcp -v gnubee.bin /dev/mtd3`.  Alternatively you
-can copy it to a VFAT filesystem on USB storage, and boot with that
-storage plugged in.  This will cause the firmware to be copied to
-flash.  When one LED stops flashing and both LEDs are solid-on,
+flash it with `flashcp -v gnubee-5.1-rc3-gbpc2.bin /dev/mtd3`.  Alternatively you
+can copy it to a VFAT filesystem on USB storage (do not forget to rename
+it to gnubee.bin), and boot with that storage plugged in.  This will cause the firmware
+to be copied to flash.  When one LED stops flashing and both LEDs are solid-on,
 remove the USB storage and reboot into the new firmware.
 
 First Boot
@@ -182,6 +182,9 @@ places, such as described in  https://wiki.debian.org/CrossToolchains.
 If you want to compile your own (as I did), here are some steps.
 
 - Install gmp mpfr mpc devel packages
+        
+        sudo apt-get install libgmp-dev libmpfr-dev libmpc-dev
+
 - collect the source code:
 
         cd /home/git
