@@ -146,7 +146,7 @@ gnubee_bin() {
 	if [ " $S" = " " -o " $S" = " 0" ]; then
 	    vers="$V.$P$X"
 	else
-	    vers="$Vp.$P.$S$X"
+	    vers="$V.$P.$S$X"
 	fi
 	if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
 	    suffix="${vers}-gbpc2"
