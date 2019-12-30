@@ -195,6 +195,10 @@ gnubee_boot(){
 	    udhcpd_config $BLACK 192.168.10
 	    udhcpd /udhcpd.conf
 	fi
+	if [ ! -s /etc/dropbear/dropbear_ecdsa_host_key ]; then
+	    # build host didn't have dropbear, so make a new key on each boot
+	    dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
+	fi
 	dropbear
 
 	run_shell /dev/ttyS0
@@ -249,4 +253,16 @@ gnubee_boot(){
     done
 }
 
+setup_busybox() {
+ # If "busybox --list" couldn't be run during mkinitramfs, we
+ # need to do it now.
+ if busybox test -e /bin/test
+ then return
+ fi
+ for i in `busybox --list`; do
+    busybox ln -s /bin/busybox /bin/$i
+ done
+}
+
+setup_busybox
 gnubee_boot

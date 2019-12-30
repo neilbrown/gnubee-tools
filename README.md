@@ -29,11 +29,22 @@ just type "`config`" to run it.
 Preparation
 -----------
 
-To build the firmware, you will need a GnuBee running Debian.
-Various tools for the initramfs are simply copied from the running
-system rather than being built separately: lazy, but fast.
+To build the firmware, you will need (something approximating) a MIPSEL
+Debian root filesustem.  Various tools for the initramfs are simply
+copied from this file system rather than being built separately: lazy,
+but fast.  This can be achieved by one of:
 
-On the GnuBee you will need various packages installed.  To
+1/ doing the full build on the GnuBee
+
+2/ setting up "ssh" access to the GnuBee, an providing the address in
+   GNUBEE_SSH_HOST in the config file
+
+3/ Running "gbmake chroot" to create a local Debian filesystem using
+   "debootstrap".  This can be run on any Linux distro (tested on openSUSE).
+   This option is a little fragile as some library dependencies need
+   to be hard-codes, but might change in the future.
+
+If you are using a GnuBee you will need various packages installed.  To
 install them run:
 
 	sudo apt-get install make gcc busybox libnl-genl-3-dev
@@ -53,6 +64,8 @@ If you want to build firmware that can be used to install debian, you
 also need
 
 	sudo apt-get install debootstrap
+
+All of these are installed when using "gbmake chroot"
 
 Building
 --------

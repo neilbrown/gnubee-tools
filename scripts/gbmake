@@ -92,6 +92,67 @@ gnubee_defconfig() {
 	touch "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
 }
 
+deb_data() {
+	case `ar t $1` in
+	*data.tar.gz* )
+		ar p $1 data.tar.gz | tar xzf - 
+		;;
+	*data.tar.xz* )
+		ar p $1 data.tar.xz | tar xJf - 
+		;;
+	esac
+}
+
+gnubee_chroot() {
+	# use debootstrap to make a chroot with mipsel debian
+	# so we can copy some files into our initramfs
+	deb=$GNUBEE_BUILD_DIR/deb
+	mkdir -p $deb
+	if [ ! -f $deb/usr/sbin/debootstrap ]; then
+	    # need to get debootstrap
+	    URL=`wget 2> /dev/null  -O - https://packages.debian.org/stable/all/debootstrap/download |
+		   sed -n -e 's,^.*\(http://ftp.debian.org/[^"]*\)".*,\1,p'`
+	    case $URL in
+		http:*_all.deb ) ;;
+		* ) echo >&2 ERROR cannot find deb file for debootstrap, sorry.
+		    exit 1
+	    esac
+	    rm -f $deb/*
+	    wget -O $deb/debootstrap.deb "$URL"
+	    (cd $deb; deb_data debootstrap.deb )
+	    if [ ! -f $deb/usr/sbin/debootstrap ]; then
+		echo >&2 ERROR failed to download debootstrap package
+		exit 1
+	    fi
+	fi
+
+	rm -rf $deb/chroot $deb/bin
+	mkdir $deb/chroot
+	mkdir -p $deb/bin
+	echo "echo 0" > $deb/bin/id
+	ln -s /bin/true $deb/bin/mknod
+	chmod +x $deb/bin/id
+	EXTRA=debootstrap,ntpdate,wget,busybox,mdadm,dropbear-bin,cryptsetup-bin,mtd-utils,u-boot-tools,xfsprogs,lvm2,evtest,perl
+	EXTRA=$EXTRA,libdevmapper-event1.02.1,libdevmapper1.02.1,libpcre2-8-0,libreadline5
+	EXTRA=$EXTRA,libtomcrypt1,libcryptsetup12,libssl1.1,libpopt0,libtommath1,libaio1,libpsl5,libtinfo6,libunistring2,libgmp10
+	EXTRA=$EXTRA,libargon2-1,liblzma5,libp11-kit0,libjson-c3,liblz4-1,libtasn1-6,libhogweed4,libffi6
+	PATH=$deb/bin:$PATH DEBOOTSTRAP_DIR=$deb/usr/share/debootstrap/ \
+	 $deb/usr/sbin/debootstrap --keep-debootstrap-dir  --arch=mipsel --foreign  \
+	  --include=$EXTRA \
+	  stable $deb/chroot/ http://deb.debian.org/debian/
+	if [ ! -e $deb/chroot/debootstrap/debpaths ]; then
+	    return 1
+	fi
+	for i in $(echo $EXTRA | tr , ' '); do
+	 (cd $deb/chroot
+	  echo I: Extracting $i...
+	  p=$(awk -v p=$i '$1 == p {print $2}' debootstrap/debpaths)
+	  deb_data ./$p
+	 )
+	done
+	return 0
+}
+
 gnubee_initramfs() {
 	i=${GNUBEE_INITRAMFS_TREE}
 	mkdir -p "$i"
@@ -171,6 +232,7 @@ gnubee_firmware() {
 
 case $1 in
  defconfig* | *defconfig ) gnubee_defconfig $1;;
+ chroot ) gnubee_chroot ;;
  initramfs ) gnubee_initramfs;;
  modules ) gnubee_modules ;;
  headers ) gnubee_headers ;;

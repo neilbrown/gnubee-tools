@@ -26,17 +26,71 @@ esac
 
 case `uname -m` in
 	mips ) remote=eval ;;
-	* ) if [ -z "$GNUBEE_SSH_HOST" ]; then
-		echo Please run on a gnubee, or provide GNUBEE_SSH_HOST
+	* ) 
+	    if [ -d "$GNUBEE_BUILD_DIR/deb/chroot" ]; then
+		remote=from_chroot
+	    elif [ -n "$GNUBEE_SSH_HOST" ]; then
+		remote="ssh -x $GNUBEE_SSH_HOST"
+		case `$remote uname -m` in
+		    mips ) : success ;;
+		    * ) echo >&2 $GNUBEE_SSH_HOST no accessible or not mips; exit 1
+		esac
+	    else
+		echo 'Please run on a gnubee, or provide GNUBEE_SSH_HOST, or "gbmake chroot"'
 		exit 1
 	    fi
-	    remote="ssh -x $GNUBEE_SSH_HOST"
-	    case `$remote uname -m` in
-		mips ) : success ;;
-		* ) echo >&2 $GNUBEE_SSH_HOST no accessible or not mips; exit 1
-	    esac
 esac
 
+from_chroot() {
+ ch=$GNUBEE_BUILD_DIR/deb/chroot
+ if [ "$2" = "which" ]; then
+	for p in /sbin /usr/sbin `echo $PATH | tr : ' '`; do
+	    if [ -f $ch/$p/$3 ]; then
+		echo $p/$3
+		return
+	    fi
+	done
+	return
+ fi
+ if [ "$1" = cat ]; then
+	if [ -e "$ch$2" ]; then
+		cat $ch$2
+	else
+		cat $ch/usr$2
+	fi
+	return
+ fi
+
+ if [ "$1" = ldd ]; then
+    strings - $ch$2 | grep -a '\.so\.[0-9.]*$' | while read b; do
+	for d in /lib/mipsel-linux-gnu /usr/lib/mipsel-linux-gnu ; do	
+	  if [ -f "$ch$d/$b" ]; then echo " stuff $d/$b (mess)";  fi
+	done
+    done
+    return
+ fi
+ if [ "$1 $2" = "busybox --list" ]; then
+	# do this after boot
+	return
+ fi
+ if [ "$1" = dropbearkey ]; then
+   a=`which 2> /dev/null dropbearkey`
+   if [ -n "$a" ]; then
+	eval "$*"
+   fi
+   return
+ fi
+ case "$*" in
+    *debootstrap* )
+	(cd $ch ; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )
+	;;
+     *lib/terminfo*echo* )
+	( cd $ch; [ -d lib/terminfo ] && echo lib || echo usr/lib )
+	;;
+    * ) echo >&2 ERROR cannot run command with chroot: "$*"
+	exit 1
+ esac
+}
 
 prog=$0
 if [ -L "$prog" ]; then prog=`readlink $prog`; fi
@@ -92,6 +146,17 @@ mkdir -p etc/terminfo/l
 $remote cat /$LIB/terminfo/l/linux > etc/terminfo/l/linux
 
 libs=
+if [ "$remote" = "from_chroot" ]; then
+    # when installing from a chroot, we cannot run 'ldd', and "strings -" doesn't
+    # find all libraries, so we need to add some
+    libs="/lib/ld.so.1"
+    for l in cap-ng.so.0 pcre.so.3 pthread.so.0  unistring.so.2 gmp.so.10 ssl.so.1.1 \
+             argon2.so.1 lzma.so.5 p11-kit.so.0 json-c.so.3 lz4.so.1 tasn1.so.6 \
+	      hogweed.so.4 ffi.so.6
+    do libs="$libs /lib/mipsel-linux-gnu/lib$l"
+    done
+fi
+
 # install essential binaries
 for b in busybox findfs; do
     path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
@@ -114,13 +179,17 @@ if [ -f bin/debootstrap ]; then
     libs="$libs /$LIB/mipsel-linux-gnu/libresolv.so.2"
     libs="$libs /$LIB/mipsel-linux-gnu/libnss_dns.so.2"
 
-    # Need to build pkgdetails
-    echo "## building pkgdetails"
-    T=/tmp/.gb-built-$$
-    (cd $gbtools/pkgdetails; tar cf - . ) |
-	$remote "rm -rf $T ; mkdir -p $T; cd $T; tar xf -; cc -Wno-implicit-function-declaration -o pkgdetails pkgdetails.c"
-    $remote cat $T/pkgdetails > usr/share/debootstrap/pkgdetails
-    chmod 755 usr/share/debootstrap/pkgdetails
+    # Need to build pkgdetails - or provide perl
+    if [ "$remote" = "from_chroot" ]; then
+	debootstrap_bins="$debootstrap_bins perl"
+    else
+	echo "## building pkgdetails"
+	T=/tmp/.gb-built-$$
+	(cd $gbtools/pkgdetails; tar cf - . ) |
+	    $remote "rm -rf $T ; mkdir -p $T; cd $T; tar xf -; cc -Wno-implicit-function-declaration -o pkgdetails pkgdetails.c"
+	$remote cat $T/pkgdetails > usr/share/debootstrap/pkgdetails
+	chmod 755 usr/share/debootstrap/pkgdetails
+    fi
 else
     echo "!! debootstrap not installed"
 fi
