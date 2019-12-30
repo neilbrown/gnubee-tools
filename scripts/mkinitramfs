@@ -83,9 +83,13 @@ ln -s ../bin usr/bin
 ln -s ../lib usr/lib
 ln -s /proc/mounts etc/mtab
 
+# Debian moved some things from /lib to /usr/lib... makes life awkward.
+# terminfo is each to check..
+LIB=$($remote 'cd /; [ -d lib/terminfo ] && echo lib || echo usr/lib')
+
 # cfdisk need terminfo - provide one.
 mkdir -p etc/terminfo/l
-$remote cat /lib/terminfo/l/linux > etc/terminfo/l/linux
+$remote cat /$LIB/terminfo/l/linux > etc/terminfo/l/linux
 
 libs=
 # install essential binaries
@@ -107,8 +111,8 @@ $remote '(cd /; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap
 if [ -f bin/debootstrap ]; then
      # let's install everything else needed to bootstrap a debian install
     debootstrap_bins="cfdisk fdisk mkfs.ext4 tune2fs wget gpgv"
-    libs="$libs /lib/mipsel-linux-gnu/libresolv.so.2"
-    libs="$libs /lib/mipsel-linux-gnu/libnss_dns.so.2"
+    libs="$libs /$LIB/mipsel-linux-gnu/libresolv.so.2"
+    libs="$libs /$LIB/mipsel-linux-gnu/libnss_dns.so.2"
 
     # Need to build pkgdetails
     echo "## building pkgdetails"
@@ -150,12 +154,12 @@ if [ -f bin/dropbear ]; then
     echo 'PATH=.:/bin; export PATH' > etc/profile
     # root password is GnuBee
     echo > etc/shadow 'root:$6$l80E2NNrh32z0N$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6NkxW3eLCvLbw05tMKkbyRlieU1QeZ4tngZpaS9Fnf0::0:99999:7:::'
-    libs="$libs /lib/mipsel-linux-gnu/libnss_files.so.2"
+    libs="$libs /$LIB/mipsel-linux-gnu/libnss_files.so.2"
     if [ -f bin/passwd ]; then
 	# need pam modules too
 	echo 'passwd password required pam_unix.so sha512' > etc/pam.conf
-	mkdir -p lib/mipsel-linux-gnu/security
-	path=lib/mipsel-linux-gnu/security/pam_unix.so
+	mkdir -p $LIB/mipsel-linux-gnu/security
+	path=$LIB/mipsel-linux-gnu/security/pam_unix.so
 	$remote cat /$path > $path
 	libs="$libs `$remote ldd "/$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
     fi
