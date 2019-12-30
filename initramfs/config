@@ -148,7 +148,7 @@ bootstrap() {
     fi
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:$PATH
     export PATH
-    debootstrap --arch=mipsel --include=vim,openssh-server,ntpdate,cron,locales,udev,ca-certificates,apt-transport-https,vlan,libnl-3-200,libnl-genl-3-200 stretch $mp http://httpredir.debian.org/debian || exit 1
+    debootstrap --arch=mipsel --include=vim,openssh-server,ntpdate,cron,locales,udev,mtd-utils,ca-certificates,apt-transport-https,vlan,libnl-3-200,libnl-genl-3-200 stretch $mp http://httpredir.debian.org/debian || exit 1
     return 1
 }
 
