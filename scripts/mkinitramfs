@@ -83,6 +83,10 @@ ln -s ../bin usr/bin
 ln -s ../lib usr/lib
 ln -s /proc/mounts etc/mtab
 
+# cfdisk need terminfo - provide one.
+mkdir -p etc/terminfo/l
+$remote cat /lib/terminfo/l/linux > etc/terminfo/l/linux
+
 libs=
 # install essential binaries
 for b in busybox findfs; do
@@ -102,7 +106,7 @@ echo "## copying debootstrap (if present)"
 $remote '(cd /; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )' | tar xf -
 if [ -f bin/debootstrap ]; then
      # let's install everything else needed to bootstrap a debian install
-    debootstrap_bins="mkfs.ext4 tune2fs wget gpgv"
+    debootstrap_bins="cfdisk fdisk mkfs.ext4 tune2fs wget gpgv"
     libs="$libs /lib/mipsel-linux-gnu/libresolv.so.2"
     libs="$libs /lib/mipsel-linux-gnu/libnss_dns.so.2"
 
