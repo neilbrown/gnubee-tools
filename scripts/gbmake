@@ -51,10 +51,10 @@ gnubee_model() {
     case `grep machine /proc/cpuinfo` in
 	*GB-PC1* ) prefix=gbpc1;;
 	*GB-PC2* ) prefix=gbpc2;;
-	* ) echo UNKNOWN; return 1
+	* ) echo "UNKNOWN"; return 1
     esac
     if [ ! -c /dev/mtd0 ]; then
-	echo UNKNOWN; return 1
+	echo "UNKNOWN"; return 1
     fi
     if [ ! -f Makefile ]; then
 	echo "No-version"; return 1
@@ -72,9 +72,9 @@ gnubee_defconfig() {
 	case $mach in
 	    "" | defconfig ) # guess
 		if mach=`gnubee_model`; then
-		    echo Using config $mach
+		    echo "I: Using config $mach"
 		else
-		    echo >&2 Cannot guess machine type
+		    echo >&2 "W: Cannot guess machine type"
 		    mach=
 		fi
 	esac
@@ -83,8 +83,8 @@ gnubee_defconfig() {
 		cp "$GNUBEE_CONFIG_DIR/$mach" "$GNUBEE_KERNEL_OBJECTS/.config"
 		make O="$GNUBEE_KERNEL_OBJECTS" oldconfig
 	else
-		[ -n "$mach" ] && echo >&2 "Config file '$mach' does not exist"
-		echo >&2 "Please choose one of:"
+		[ -n "$mach" ] && echo >&2 "E: Config file '$mach' does not exist"
+		echo >&2 "E: Please choose one of:"
 		ls -C "$GNUBEE_CONFIG_DIR" | sed 's/^/    /' >&2
 		exit 1
 	fi
@@ -115,14 +115,14 @@ gnubee_chroot() {
 		   sed -n -e 's,^.*\(http://ftp.debian.org/[^"]*\)".*,\1,p'`
 	    case $URL in
 		http:*_all.deb ) ;;
-		* ) echo >&2 ERROR cannot find deb file for debootstrap, sorry.
+		* ) echo >&2 "E: cannot find deb file for debootstrap"
 		    exit 1
 	    esac
 	    rm -f $deb/*
 	    wget -O $deb/debootstrap.deb "$URL"
-	    (cd $deb; deb_data debootstrap.deb )
+	    (cd $deb; deb_data debootstrap.deb)
 	    if [ ! -f $deb/usr/sbin/debootstrap ]; then
-		echo >&2 ERROR failed to download debootstrap package
+		echo >&2 "E: failed to download debootstrap package"
 		exit 1
 	    fi
 	fi
@@ -144,9 +144,9 @@ gnubee_chroot() {
 	if [ ! -e $deb/chroot/debootstrap/debpaths ]; then
 	    return 1
 	fi
-	for i in $(echo $EXTRA | tr , ' '); do
+	for i in $(echo "$EXTRA" | tr , ' '); do
 	 (cd $deb/chroot
-	  echo I: Extracting $i...
+	  echo "I: Extracting $i..."
 	  p=$(awk -v p=$i '$1 == p {print $2}' debootstrap/debpaths)
 	  deb_data ./$p
 	 )
@@ -158,18 +158,18 @@ gnubee_initramfs() {
 	i=${GNUBEE_INITRAMFS_TREE}
 	mkdir -p "$i"
 	case `realpath "$i"` in
-		/ ) echo >&2 Cannot use root as initramfs tree.; exit 1
+		/ ) echo >&2 "E: Cannot use root as initramfs tree"; exit 1
 	esac
 
 	rm -rf "$i"; mkdir "$i"
 	mkdir -p "$GNUBEE_KERNEL_OBJECTS"
 	$gbtools/scripts/mkinitramfs "$i" "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
-	echo "initramfs: $(du -sh "$i")"
+	echo "I: initramfs: $(du -sh "$i")"
 }
 
 gnubee_modules() {
 	case `realpath $GNUBEE_INITRAMFS_TREE/lib` in
-		/lib ) echo >&2 Cannot use root as initramfs tree.; exit 1
+		/lib ) echo >&2 "E: Cannot use root as initramfs tree"; exit 1
 	esac
 	rm -rf "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*
 	make O="$GNUBEE_KERNEL_OBJECTS" \
@@ -185,7 +185,7 @@ gnubee_modules() {
 
 gnubee_headers() {
 	case `realpath $GNUBEE_BUILD_DIR/` in
-		/usr | / ) echo >&2 Cannot build to /usr or /.; exit 1
+		/usr | / ) echo >&2 "E: Cannot build to /usr or /"; exit 1
 	esac
 	rm -rf "$GNUBEE_BUILD_DIR/include"
 	make O="$GNUBEE_KERNEL_OBJECTS" INSTALL_HDR_PATH="$GNUBEE_BUILD_DIR" \
@@ -220,7 +220,7 @@ gnubee_extern() {
 
 gnubee_bin() {
 	if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
-		echo >&2 "Please run 'gbmake initramfs' first"
+		echo >&2 "E: Please run 'gbmake initramfs' first"
 		exit 1
 	fi
 	make O="$GNUBEE_KERNEL_OBJECTS" uImage.bin || exit 1
@@ -282,7 +282,7 @@ case $1 in
 
  * )
     if [ ! -f "$GNUBEE_KERNEL_OBJECTS/.config" ]; then
-	echo >&2 Please run gbmake defconfig_XX first
+	echo >&2 "E: Please run gbmake defconfig_XX first"
 	exit 1
     fi
     make O="$GNUBEE_KERNEL_OBJECTS" ${1+"$@"}
