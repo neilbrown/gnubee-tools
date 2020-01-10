@@ -1,19 +1,35 @@
 #  SPDX-License-Identifier: GPL-2.0
 #
-# This is check code sourced by gbmake
+# This file is sourced by gbmake
+#
+# $gbtools can be used as the path to the root of the gnubee-tools repository
+# all paths can be relative to the directory the script is executed in
 
-# Directory for kernel build objects, usually a relative path
-#   GNUBEE_KERNEL_OBJECTS=O
-# Directory for initramfs, can be relative
-#   GNUBEE_INITRAMFS_TREE:=initramfs
-# Directory containing kernel config files - 'kern_config' in parent of script by default
-#   GNUBEE_CONFIG_DIR=
-# Directory where user-space tools are built - usually ../build from script dir
-#   GNUBEE_BUILD_DIR=
-# Cross compiler - full path such as /opt/cross/bin/mipsel-unknown-linux-gnu-
+# Debian suite to use for debootstrap, will be used to build initramfs
+# May be a release code name (e.g. stretch, buster, sid) or a symbolic name (eg, unstable, testing, stable, oldstable)
+#   GNUBEE_DEBIAN_SUITE="stable"
+
+# Debian mirror to use for debootstrap, will be used to build initramfs
+#   GNUBEE_DEBIAN_MIRROR="http://deb.debian.org/debian/"
+
+# Directory for kernel build objects
+#   GNUBEE_KERNEL_OBJECTS="O"
+
+# Directory for initramfs
+#   GNUBEE_INITRAMFS_TREE="initramfs"
+
+# Directory containing kernel config files
+#   GNUBEE_CONFIG_DIR="$gbtools/kern_config"
+
+# Directory where user-space tools are built
+#   GNUBEE_BUILD_DIR="$gbtools/build"
+
+# Path to cross compiler - must be in $PATH or full path such as /opt/cross/bin/mipsel-unknown-linux-gnu-
 #   CROSS_COMPILE=
+
 # GnuBee running Debian from which various programs can be copied.
 #   GNUBEE_SSH_HOST=root@192.168.1.111
+
 # To include extenal modules in the image, list them here.  Just the name
 # of the directory may suffice if the Makefile there follows normal conventions.
 # Otherwise provide a script that will build the module and install it.

@@ -13,10 +13,12 @@ if [ -L "$prog" ]; then prog="`readlink $prog`"; fi
 gbtools="`realpath "$(dirname "$prog")/.."`"
 [ -f "$gbtools/config" ] && . "$gbtools/config"
 
-: kernel build object are placed in ${GNUBEE_KERNEL_OBJECTS:=O}
-: initramfs is placed in ${GNUBEE_INITRAMFS_TREE:=initramfs}
-: default kernel config files are found in ${GNUBEE_CONFIG_DIR:=$gbtools/kern_config}
-: headers are installed into ${GNUBEE_BUILD_DIR:=$gbtools/build}
+: debian suite is ${GNUBEE_DEBIAN_SUITE:="stable"}
+: debian mirror is ${GNUBEE_DEBIAN_MIRROR:="http://deb.debian.org/debian/"}
+: kernel build object are placed in ${GNUBEE_KERNEL_OBJECTS:="O"}
+: initramfs is placed in ${GNUBEE_INITRAMFS_TREE:="initramfs"}
+: default kernel config files are found in ${GNUBEE_CONFIG_DIR:="$gbtools/kern_config"}
+: headers are installed into ${GNUBEE_BUILD_DIR:="$gbtools/build"}
 : cross compuler used is ${CROSS_COMPILE}
 
 mkdir -p "${GNUBEE_KERNEL_OBJECTS}"
@@ -140,7 +142,7 @@ gnubee_chroot() {
 	PATH="$deb/bin:$PATH" DEBOOTSTRAP_DIR="$deb/usr/share/debootstrap/" \
 	 "$deb/usr/sbin/debootstrap" --keep-debootstrap-dir  --arch=mipsel --foreign  \
 	  --include="$EXTRA" \
-	  stable "$deb/chroot/" http://deb.debian.org/debian/
+	  "$GNUBEE_DEBIAN_SUITE" "$deb/chroot/" "$GNUBEE_DEBIAN_MIRROR"
 	if [ ! -e "$deb/chroot/debootstrap/debpaths" ]; then
 	    return 1
 	fi
