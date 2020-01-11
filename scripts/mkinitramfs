@@ -73,13 +73,6 @@ from_chroot() {
 	# do this after boot
 	return
  fi
- if [ "$1" = "dropbearkey" ]; then
-   a="`which 2> /dev/null dropbearkey`"
-   if [ -n "$a" ]; then
-	eval "$*"
-   fi
-   return
- fi
  case "$*" in
     *debootstrap* )
 	(cd "$ch" ; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )
@@ -87,6 +80,13 @@ from_chroot() {
      *lib/terminfo*echo* )
 	( cd "$ch"; [ -d lib/terminfo ] && echo "lib" || echo "usr/lib" )
 	;;
+     dropbearkey* )
+         a="`which 2> /dev/null dropbearkey`"
+         if [ -n "$a" ]; then
+             eval "$*"
+         fi
+         return
+         ;;
     * ) echo >&2 "E: cannot run command with chroot: $*"
 	exit 1
  esac
