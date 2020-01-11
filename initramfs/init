@@ -14,6 +14,9 @@ set_led() {
 	      echo $2 > delay_on
 	      echo $3 > delay_off
 	      ;;
+	  2 )
+	      echo $2 > trigger
+	      ;;
 	  * ) echo none > trigger
       esac
     )
