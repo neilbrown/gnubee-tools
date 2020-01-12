@@ -16,7 +16,7 @@
 mp=/tmp/newroot
 default_debian_suite=buster
 default_debian_mirror="http://httpredir.debian.org/debian"
-include_packages="vim,openssh-server,ntpdate,cron,locales,udev,fake-hwclock,mtd-utils,ca-certificates,apt-transport-https,vlan"
+include_packages="vim,openssh-server,ntpdate,cron,locales,udev,fake-hwclock,mtd-utils,ca-certificates,apt-transport-https,vlan,bash-completion,less,man-db,manpages,dbus"
 
 set_host() {
     case `hostname` in
