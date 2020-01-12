@@ -11,6 +11,7 @@
 #    hostname
 #    ssh PermitRootLogin
 #    label filesystem
+#    add leds udev rule
 
 mp=/tmp/newroot
 
@@ -199,6 +200,13 @@ fixup_modules() {
     cp -a /lib/modules/. $mp/lib/modules
 }
 
+fixup_leds() {
+	cat > "$mp/lib/udev/rules.d/70-gnubee-leds.rules" <<- "EOF"
+		ACTION=="add", SUBSYSTEM=="leds", KERNEL=="gb-pc1:green:status", ATTR{trigger}="default-on"
+		ACTION=="add", SUBSYSTEM=="leds", KERNEL=="gb-pc1:green:system", ATTR{trigger}="activity"
+		EOF
+}
+
 fixup() {
     hostname > $mp/etc/hostname
     root=`grep '^root:' /etc/shadow`
@@ -211,6 +219,7 @@ fixup() {
     esac
     fixup_net
     fixup_modules
+    fixup_leds
     return 0
 }
 
