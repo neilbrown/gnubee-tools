@@ -47,7 +47,7 @@ but fast.  This can be achieved by one of:
 If you are using a GnuBee you will need various packages installed.  To
 install them run:
 
-	sudo apt-get install make gcc busybox libnl-genl-3-dev
+	sudo apt-get install make gcc flex bison busybox libnl-genl-3-dev
 
 On whichever machine you want to build the kernel (which could be a
 GnuBee) you will need:
@@ -73,12 +73,14 @@ Building
 To build a firmware image you can
 
 	git clone https://github.com/neilbrown/gnubee-tools.git
-	git clone https://github.com/neilbrown/linux.git -b gnubee/v4.4
+	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.4
 	cd linux
-	../gnubee-tools/scripts/gbmake firmware gbpc1-4.4
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.4
 
-If you run this on the GnuBee itself (with Debian installed), no other
-configuration is needed.
+If you run this on the GnuBee itself (with Debian installed), you need
+to ensure some swap space is configured, as "lzma" needs to allocate a
+lot of memory to compress the initramfs - 2Gig seems to be enough.  No
+other configuration is needed.
 
 If you run it on another machine, you will need ssh access to the
 GnuBee.  This needs to be configured in `gnubee-tools/config`, which
@@ -86,28 +88,23 @@ can be copied from `config.sample`.  In particular, `CROSS_COMPILE`
 and `GNUBEE_SSH_HOST` must be set.
 
 The above command will build firmware for a GnuBee PC1.
-If you have a PC2, you still need to specify the
-gbpc1 as I haven't added config info for the PC2 yet.
+If you have a PC2, specify "gbpc2-5.4" on the "gbmake firmware" command.
 
 I find that the `gbmake` step takes 118 minutes on a GnuBee, and a
 little over 4 minutes on my quad-core 16GB RAM desktop.  The `git
 clone` of Linux takes roughly forever on the GnuBee due to limited
-memory -- consider doing this elsewhere and coping the result over.
+memory, unles the "--depth" option is specifed as above.
 Alternately, use
 
-	wget  https://github.com/neilbrown/linux/archive/gnubee/v4.4.zip
-	unzip v4.4.zip
-	cd linux-gnubee-v4.4
-	../gnubee-tools/scripts/gbmake firmware gbpc1-4.4
+	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.4.zip
+	unzip v5.4.zip
+	cd linux-gnubee-v5.4
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.4
 
 
 If you want to just run `gbmake firmware` without the full path, you
 can `ln -s` the script to a `bin` directory.  Don't copy it as it
 won't work like that.
-
-Note that Linux-5.1 code is also available - simply replace '4.4' with
-'5.1' in the above.  With 5.1 there is the option of "gbpc2-5.1" which
-supports the 3.5inch PC2 and includes support for the 3rd network port.
 
 Installing
 ----------
