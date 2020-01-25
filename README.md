@@ -11,7 +11,7 @@ A normal boot requires that a root filesystem already exists;
 this can be on an SD card, USB storage, or SATA device (including
 md-raid or LVM2).
 This filesystem must be named "GNUBEE-ROOT" and `findfs` must be able
-to find it.  The default config only builds support for xfs and ext4.
+to find it.  The default config builds support for xfs, ext4, and btrfs.
 
 This package contains config files and scripts to build a kernel
 and an initramfs, in a format that can be written to flash.
@@ -58,7 +58,7 @@ Other packages for the GnuBee that are optional but give more functionality
 in the initramfs are:
 
 	sudo apt-get install mdadm dropbear cryptsetup-bin \
-		mtd-utils u-boot-tools xfsprogs lvm2 evtest
+		mtd-utils u-boot-tools xfsprogs btrfs-progs lvm2 evtest
 
 If you want to build firmware that can be used to install debian, you
 also need

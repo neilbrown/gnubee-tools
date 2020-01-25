@@ -132,10 +132,10 @@ gnubee_chroot() {
 	echo "echo 0" > $deb/bin/id
 	ln -s /bin/true $deb/bin/mknod
 	chmod +x $deb/bin/id
-	EXTRA=debootstrap,ntpdate,wget,busybox,mdadm,dropbear-bin,cryptsetup-bin,mtd-utils,u-boot-tools,xfsprogs,lvm2,evtest,perl
+	EXTRA=debootstrap,ntpdate,wget,busybox,mdadm,dropbear-bin,cryptsetup-bin,mtd-utils,u-boot-tools,xfsprogs,btrfs-progs,lvm2,evtest,perl
 	EXTRA=$EXTRA,libdevmapper-event1.02.1,libdevmapper1.02.1,libpcre2-8-0,libreadline5
 	EXTRA=$EXTRA,libtomcrypt1,libcryptsetup12,libssl1.1,libpopt0,libtommath1,libaio1,libpsl5,libtinfo6,libunistring2,libgmp10
-	EXTRA=$EXTRA,libargon2-1,liblzma5,libp11-kit0,libjson-c3,liblz4-1,libtasn1-6,libhogweed4,libffi6
+	EXTRA=$EXTRA,libargon2-1,liblzma5,libp11-kit0,libjson-c3,liblz4-1,libtasn1-6,libhogweed4,libffi6,liblzo2-2
 	PATH=$deb/bin:$PATH DEBOOTSTRAP_DIR=$deb/usr/share/debootstrap/ \
 	 $deb/usr/sbin/debootstrap --keep-debootstrap-dir  --arch=mipsel --foreign  \
 	  --include=$EXTRA \
