@@ -63,8 +63,6 @@ gnubee_switch_root(){
 	# ensure modules are available
 	mount -t tmpfs tmpfs /mnt/root/lib/modules
 	cp -a /lib/modules/. /mnt/root/lib/modules/
-	# swconfig might be useful too
-	[ -f /bin/swconfig ] && cp /bin/swconfig /mnt/root/lib/modules
 	# and "keep" is needed of course
 	cp /keep /mnt/root/lib/modules/
     fi
@@ -145,29 +143,12 @@ gnubee_boot(){
 
     # eth0 needs to be up to able to access ports through the switch
     ifconfig eth0 up
-    if test -x /bin/swconfig && /bin/swconfig list | grep -s switch0 ; then
-	ip link set eth0 address `echo $addr | tr ' ' :`
-	swconfig dev switch0 set reset
-	swconfig dev switch0 set enable_vlan 1
-	swconfig dev switch0 vlan 1 set ports '0 6t'
-	swconfig dev switch0 vlan 2 set ports '4 6t'
-	swconfig dev switch0 port 0 set pvid 1
-	swconfig dev switch0 port 4 set pvid 2
-	swconfig dev switch0 set apply
-	ip link add link eth0 name eth0.1 type vlan id 1
-	ip link add link eth0 name eth0.2 type vlan id 2
-	BLACK=eth0.1
-	BLUE=eth0.2
-    else
-	# Hopefully a new kernel with DSA support
-	ip link set ethblack address `echo $addr | tr ' ' :`
-	addr=`next_addr "$addr"`
-	ip link set ethblue address `echo $addr | tr ' ' :`
-	addr=`next_addr "$addr"`
-	ip link set eth1 address `echo $addr | tr ' ' :`
-	BLACK=ethblack
-	BLUE=ethblue
-    fi
+
+    ip link set ethblack address `echo $addr | tr ' ' :`
+    addr=`next_addr "$addr"`
+    ip link set ethblue address `echo $addr | tr ' ' :`
+    addr=`next_addr "$addr"`
+    ip link set eth1 address `echo $addr | tr ' ' :`
 
     # Wait for devices to appear
     sleep 2
@@ -186,13 +167,13 @@ gnubee_boot(){
     if [ " $CONFIGURE_NET" = " yes" ] || evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
 	set_led system 800 200
 	# Blue RJ-45 uses DHCP
-	ifconfig $BLUE up ; udhcpc -b -i $BLUE -s /udhcpc.script > /dev/null 2>&1
+	ifconfig ethblue up ; udhcpc -b -i ethblue -s /udhcpc.script > /dev/null 2>&1
 	# Black RJ-45 (nearest to power jack) has a static address and DHCP server
 	if [ " $CONFIGURE_BLACK_IP" != " " ]; then
-	    ifconfig $BLACK $CONFIGURE_BLACK_IP up
+	    ifconfig ethblack $CONFIGURE_BLACK_IP up
 	else
-	    ifconfig $BLACK 192.168.10.1
-	    udhcpd_config $BLACK 192.168.10
+	    ifconfig ethblack 192.168.10.1
+	    udhcpd_config ethblack 192.168.10
 	    udhcpd /udhcpd.conf
 	fi
 	if [ ! -s /etc/dropbear/dropbear_ecdsa_host_key ]; then

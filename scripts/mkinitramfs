@@ -241,17 +241,6 @@ fi
 echo ntp 123/tcp >> etc/services
 echo ntp 123/udp >> etc/services
 
-# Now we might need to build swconfig.
-if [ -f $builddir/include/linux/switch.h ]; then
-   echo '## building swconfig'
-   T=/tmp/.gb-built-$$
-   (cd $builddir ; tar cf - include ) | $remote "rm -rf $T; mkdir -p $T; cd $T; tar xf -"
-   (cd $gbtools/swconfig; tar cf - .) | $remote "cd $T; tar xf - ; make swconfig"
-   $remote cat $T/swconfig > bin/swconfig ; chmod 755 bin/swconfig
-   libs="$libs `$remote ldd "$T/swconfig" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
-   $remote rm -rf $T
-fi
-
 # Now make sure we have all the libraries we need.
 for lib in $libs; do
 	if [ ! -f .$lib ]; then

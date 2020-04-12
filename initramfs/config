@@ -70,9 +70,6 @@ set_net() {
     fi
 
     dev=ethblack
-    case `[ -x /sbin/swconfig ] && swconfig list` in
-	*switch0* ) dev=eth0.1
-    esac
     echo -n "Configure network ($dev) [s]tatic [d]hcp or [m]anual? "
     read ans
     case $ans in
@@ -153,12 +150,11 @@ bootstrap() {
 }
 
 fixup_net_dhcp() {
-    dev=$1 script=$2
+    dev=$1
     f=`echo $dev | tr . -`
     cat > $mp/etc/network/interfaces.d/02-$f <<- EOF
 	auto $dev
 	iface $dev inet dhcp
-	 pre-up /etc/network/scripts.d/$script
 	EOF
 }
 
@@ -179,8 +175,6 @@ fixup_net_static() {
 
 fixup_net() {
     mkdir -p $mp/etc/network/scripts.d
-    cp /network-scripts/* $mp/etc/network/scripts.d
-    [ -f /bin/swconfig ] && cp /bin/swconfig $mp/sbin/swconfig
     cat > $mp/etc/network/interfaces.d/01-lo <<- EOF
 	auto lo
 	iface lo inet loopback
@@ -194,11 +188,9 @@ fixup_net() {
     fi
 
     if ps | grep "[u]dhcp.*-i $net_dev" > /dev/null; then
-	fixup_net_dhcp ethblack no_switch
-	fixup_net_dhcp eth0.1 set_switch
+	fixup_net_dhcp ethblack
     else
-	fixup_net_static ethblack $net_ip no_switch
-	fixup_net_static eth0.1 $net_ip set_switch
+	fixup_net_static ethblack $net_ip
     fi
 }
 
