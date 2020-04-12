@@ -170,7 +170,7 @@ gnubee_modules() {
 	case `realpath $GNUBEE_INITRAMFS_TREE/lib` in
 		/lib ) echo >&2 Cannot use root as initramfs tree.; exit 1
 	esac
-	rm -rf "$GNUBEE_INITRAMFS_TREE/lib/modules/[1-9]*"
+	rm -rf "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*
 	make O="$GNUBEE_KERNEL_OBJECTS" \
 		INSTALL_MOD_PATH="`realpath $GNUBEE_INITRAMFS_TREE`" \
 		INSTALL_MOD_STRIP=1 \
