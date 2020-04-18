@@ -120,6 +120,11 @@ cat > $devlist <<- END
 	dir /mnt/root 755 0 0
 END
 
+add_optional=yes
+if grep CONFIG_DTB_GNUBEE._UBOOT=y "$GNUBEE_KERNEL_OBJECTS/.config" > /dev/null 2>&1; then
+    add_optional=no
+fi
+
 builddir=`realpath "$GNUBEE_BUILD_DIR"`
 cd $dir
 
@@ -171,6 +176,9 @@ for b in busybox findfs; do
 done
 
 debootstrap_bins=""
+
+if [ "$add_optional" = "yes" ] ; then
+
 echo "## copying debootstrap (if present)"
 $remote '(cd /; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )' | tar xf -
 if [ -f bin/debootstrap ]; then
@@ -240,6 +248,8 @@ fi
 # ntpdate need to find the ntp service
 echo ntp 123/tcp >> etc/services
 echo ntp 123/udp >> etc/services
+
+fi
 
 # Now make sure we have all the libraries we need.
 for lib in $libs; do

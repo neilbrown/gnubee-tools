@@ -212,7 +212,11 @@ gnubee_bin() {
 	if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
 	    suffix="${vers}-gbpc2"
 	else
-	    suffix="${vers}-gbpc1"
+	    if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+		suffix="${vers}-gbpc1u"
+	    else
+	        suffix="${vers}-gbpc1"
+	    fi
 	fi
 
 	cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
