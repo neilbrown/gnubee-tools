@@ -73,9 +73,9 @@ Building
 To build a firmware image you can
 
 	git clone https://github.com/neilbrown/gnubee-tools.git
-	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.4
+	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.6
 	cd linux
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.4
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.6
 
 If you run this on the GnuBee itself (with Debian installed), you need
 to ensure some swap space is configured, as "lzma" needs to allocate a
@@ -88,18 +88,18 @@ can be copied from `config.sample`.  In particular, `CROSS_COMPILE`
 and `GNUBEE_SSH_HOST` must be set.
 
 The above command will build firmware for a GnuBee PC1.
-If you have a PC2, specify "gbpc2-5.4" on the "gbmake firmware" command.
+If you have a PC2, specify "gbpc2-5.6" on the "gbmake firmware" command.
 
-I find that the `gbmake` step takes 118 minutes on a GnuBee, and a
-little over 4 minutes on my quad-core 16GB RAM desktop.  The `git
+I find that the `gbmake` step takes 3 3/4 hours on a GnuBee, and a
+little over 6 minutes on my octo-core 32GB RAM desktop.  The `git
 clone` of Linux takes roughly forever on the GnuBee due to limited
 memory, unles the "--depth" option is specifed as above.
 Alternately, use
 
-	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.4.zip
-	unzip v5.4.zip
-	cd linux-gnubee-v5.4
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.4
+	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.6.zip
+	unzip v5.6.zip
+	cd linux-gnubee-v5.6
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.6
 
 
 If you want to just run `gbmake firmware` without the full path, you
