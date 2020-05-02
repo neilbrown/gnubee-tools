@@ -61,7 +61,7 @@ gnubee_switch_root(){
     then : skip - already installed
     else
 	# ensure modules are available
-	mount -t tmpfs tmpfs /mnt/root/lib/modules
+	mount -o nosuid,nodev -t tmpfs tmpfs /mnt/root/lib/modules
 	cp -a /lib/modules/. /mnt/root/lib/modules/
 	# and "keep" is needed of course
 	cp /keep /mnt/root/lib/modules/
@@ -74,7 +74,7 @@ gnubee_switch_root(){
     # bind-mount it over.
     if need_fix_interfaces; then
 	cp -r /mnt/root/etc/network /tmp/network
-	mount -t tmpfs tmpfs /mnt/root/etc/network
+	mount -o nosuid,nodev -t tmpfs tmpfs /mnt/root/etc/network
 	cp -r /tmp/network/. /mnt/root/etc/network/.
 	sed -i -e '/^[^#]/s/eth0.1/ethblack/' -e '/^[^#]/s/eth0.2/ethblue/' \
 	    /mnt/root/etc/network/interfaces /mnt/root/etc/network/interfaces.d/*
