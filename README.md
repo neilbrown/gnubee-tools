@@ -9,7 +9,7 @@ image to boot into the Linux kernel.
 
 A normal boot requires that a root filesystem already exists;
 this can be on an SD card, USB storage, or SATA device (including
-md-raid or LVM2).
+md-raid).
 This filesystem must be named "GNUBEE-ROOT" and `findfs` must be able
 to find it.  The default config builds support for xfs, ext4, and btrfs.
 
