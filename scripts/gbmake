@@ -178,6 +178,8 @@ gnubee_modules() {
 	rm -f "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*/{build,source}
 	{ echo "This file is examined by the initramfs on boot" ;
 	  date ; }  > "$GNUBEE_INITRAMFS_TREE/lib/modules/stamp"
+	# Module.symvers will get replaced when we make uImage
+	cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers" "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" 
 }
 
 gnubee_headers() {
@@ -195,6 +197,11 @@ gnubee_bin() {
 		exit 1
 	fi
 	make O="$GNUBEE_KERNEL_OBJECTS" uImage || exit 1
+	if [ -f  "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" ]; then
+		# "make uImage" removes module info from Module.symvers.
+		cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"	\
+		   "$GNUBEE_KERNEL_OBJECTS/Module.symvers" 
+	fi
 	if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" \
 		/srv/tftpboot/GB-PCx_uboot.bin
 	then
