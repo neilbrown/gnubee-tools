@@ -65,6 +65,7 @@ gnubee_switch_root(){
 	cp -a /lib/modules/. /mnt/root/lib/modules/
 	# and "keep" is needed of course
 	cp /keep /mnt/root/lib/modules/
+	chmod -R go-w /mnt/root/lib/modules
     fi
 
     # If this kernel uses ethblack and ethblue, and /etc/network/interfaces*
@@ -76,6 +77,7 @@ gnubee_switch_root(){
 	cp -r /mnt/root/etc/network /tmp/network
 	mount -o nosuid,nodev -t tmpfs tmpfs /mnt/root/etc/network
 	cp -r /tmp/network/. /mnt/root/etc/network/.
+	chmod -R go-w /mnt/root/etc/network
 	sed -i -e '/^[^#]/s/eth0.1/ethblack/' -e '/^[^#]/s/eth0.2/ethblue/' \
 	    /mnt/root/etc/network/interfaces /mnt/root/etc/network/interfaces.d/*
 	# This kernel supports the switch through DSA, so set_switch cannot see it.
