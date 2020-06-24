@@ -36,6 +36,7 @@ command.  Known commands are:
  headers: install kernel headers into $GNUBEE_BUILD_DIR
  initramfs: create initramfs tree in ${GNUBEE_INITRAMFS_TREE} to be included in kernel
  modules: runs "make modules" then installs modules into the initramfs
+ extern: makes external modules listed in config file
  gnubee.bin: "make uImage", then copy to /srv/tftpboot and $GNUBEE_BUILD_DIR
  firmware: run all of the above in the correct order
  help: display this message
@@ -191,6 +192,32 @@ gnubee_headers() {
 		headers_install
 }
 
+gnubee_extern() {
+	KO=`realpath ${GNUBEE_KERNEL_OBJECTS}`
+	KM=`realpath ${GNUBEE_INITRAMFS_TREE}`
+	for mod in $GNUBEE_EXTERN
+	do
+		if [ -d "$mod" ]; then (
+			cd "$mod"
+			if make -k KSRC=$KO M=`pwd` modules &&
+			   make -C $KO M=`pwd` INSTALL_MOD_PATH=$KM INSTALL_MOD_STRIP=1 modules_install
+			then :
+			else echo >&2 Failed to build $mod 
+			     exit 1;
+			fi
+		) elif [ -f "$mod" ]; then
+			sh $mod $KO $KM || {
+				echo >&2 Failed to build $mod
+				exit 1;
+			}
+		else
+			echo >&2 External module $mod not found
+			exit 1
+		fi
+
+	done
+}
+
 gnubee_bin() {
 	if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
 		echo >&2 "Please run 'gbmake initramfs' first"
@@ -237,6 +264,7 @@ gnubee_firmware() {
 	gnubee_headers &&
 	{ [ -f "$GNUBEE_INITRAMFS_TREE"/init ] || gnubee_initramfs ; } &&
 	gnubee_modules &&
+	gnubee_extern &&
 	gnubee_bin
 }
 
@@ -247,6 +275,7 @@ case $1 in
  initramfs ) gnubee_initramfs;;
  modules ) gnubee_modules ;;
  headers ) gnubee_headers ;;
+ extern ) gnubee_extern ;;
  gnubee.bin ) gnubee_bin  ;;
  firmware ) gnubee_firmware $2 $3;;
  help | -h ) help ;;

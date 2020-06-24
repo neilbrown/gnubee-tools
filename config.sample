@@ -14,3 +14,9 @@
 #   CROSS_COMPILE=
 # GnuBee running Debian from which various programs can be copied.
 #   GNUBEE_SSH_HOST=root@192.168.1.111
+# To include extenal modules in the image, list them here.  Just the name
+# of the directory may suffice if the Makefile there follows normal conventions.
+# Otherwise provide a script that will build the module and install it.
+# The script is passed the kernel build directory as $1 and the initramfs install
+# directory as $2
+#   GNUBEE_EXTERN="/home/git/rtl88x2bu /home/git/rtl8192eu-linux-driver"
