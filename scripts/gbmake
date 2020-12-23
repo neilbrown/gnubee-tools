@@ -223,13 +223,13 @@ gnubee_bin() {
 		echo >&2 "Please run 'gbmake initramfs' first"
 		exit 1
 	fi
-	make O="$GNUBEE_KERNEL_OBJECTS" uImage || exit 1
+	make O="$GNUBEE_KERNEL_OBJECTS" uImage.bin || exit 1
 	if [ -f  "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" ]; then
 		# "make uImage" removes module info from Module.symvers.
 		cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"	\
 		   "$GNUBEE_KERNEL_OBJECTS/Module.symvers" 
 	fi
-	if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" \
+	if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" \
 		/srv/tftpboot/GB-PCx_uboot.bin
 	then
 		ls -lh /srv/tftpboot/GB-PCx_uboot.bin
@@ -253,7 +253,7 @@ gnubee_bin() {
 	    fi
 	fi
 
-	cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+	cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
 	ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
 }
 
