@@ -14,6 +14,9 @@ set_led() {
 	      echo $2 > delay_on
 	      echo $3 > delay_off
 	      ;;
+	  2 )
+	      echo $2 > trigger
+	      ;;
 	  * ) echo none > trigger
       esac
     )
@@ -105,7 +108,7 @@ gnubee_switch_root(){
     done
 
     set_led system
-    set_led status
+    set_led status 100 100
 
     umount -l /proc /sys /dev/pts /dev
     exec switch_root /mnt/root /sbin/init
@@ -178,11 +181,9 @@ gnubee_boot(){
 	    udhcpd_config ethblack 192.168.10
 	    udhcpd /udhcpd.conf
 	fi
-	if [ ! -s /etc/dropbear/dropbear_ecdsa_host_key ]; then
-	    # build host didn't have dropbear, so make a new key on each boot
-	    dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
-	fi
-	dropbear
+
+	# -R to generate new host keys on each boot
+	dropbear -R
 
 	run_shell /dev/ttyS0
     fi

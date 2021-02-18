@@ -11,8 +11,12 @@
 #    hostname
 #    ssh PermitRootLogin
 #    label filesystem
+#    add leds udev rule
 
 mp=/tmp/newroot
+default_debian_suite=buster
+default_debian_mirror="http://httpredir.debian.org/debian"
+include_packages="vim,openssh-server,ntpdate,cron,locales,udev,fake-hwclock,mtd-utils,ca-certificates,apt-transport-https,vlan,bash-completion,less,man-db,manpages,dbus"
 
 set_host() {
     case `hostname` in
@@ -29,6 +33,33 @@ set_host() {
 	* ) hostname $h
     esac
     return 1
+}
+
+set_debian() {
+	while [ -z "$debian_suite" ]; do
+		read -p "Which Debian suite do you want to install? (jessie | stretch | buster | bullseye | sid) [buster] " debian_suite
+		case "$debian_suite" in
+			"" ) debian_suite="$default_debian_suite" ;;
+			jessie | stretch | buster | bullseye | sid ) ;;
+			* ) echo "Unknown debian suite. Please enter one of the above choices."
+		esac
+	done
+	while [ -z "$debian_mirror" ]; do
+		read -p "Which Debian mirror do you want to use? [$default_debian_mirror]" debian_mirror
+		debian_mirror="${debian_mirror%/}"
+		case "$debian_mirror" in
+			"" ) debian_mirror="$default_debian_mirror" ;;
+			* )
+				echo -n "Validating mirror URL ... "
+				if wget -q --spider "$debian_mirror/debian/dists/$debian_suite/Release.gpg"; then
+					echo "OK."
+				else
+					echo "ERROR, please enter a valid Debian mirror URL."
+					debian_mirror=
+				fi
+		esac
+	done
+
 }
 
 check_net() {
@@ -145,7 +176,7 @@ bootstrap() {
     fi
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:$PATH
     export PATH
-    debootstrap --arch=mipsel --include=vim,openssh-server,ntpdate,cron,locales,udev,fake-hwclock,mtd-utils,ca-certificates,apt-transport-https,vlan,libnl-3-200,libnl-genl-3-200 stretch $mp http://httpredir.debian.org/debian || exit 1
+    debootstrap --arch=mipsel --include="$include_packages" "$debian_version" "$mp" "$debian_mirror" || exit 1
     return 1
 }
 
@@ -199,6 +230,13 @@ fixup_modules() {
     cp -a /lib/modules/. $mp/lib/modules
 }
 
+fixup_leds() {
+	cat > "$mp/lib/udev/rules.d/70-gnubee-leds.rules" <<- "EOF"
+		ACTION=="add", SUBSYSTEM=="leds", KERNEL=="gb-pc1:green:status", ATTR{trigger}="default-on"
+		ACTION=="add", SUBSYSTEM=="leds", KERNEL=="gb-pc1:green:system", ATTR{trigger}="activity"
+		EOF
+}
+
 fixup() {
     hostname > $mp/etc/hostname
     root=`grep '^root:' /etc/shadow`
@@ -211,10 +249,11 @@ fixup() {
     esac
     fixup_net
     fixup_modules
+    fixup_leds
     return 0
 }
 
-until set_host && set_passwd && set_net && set_time && create_filesystem && bootstrap && fixup; do
+until set_host && set_debian && set_passwd && set_net && set_time && create_filesystem && bootstrap && fixup; do
     :
 done
 
