@@ -145,7 +145,9 @@ bootstrap() {
     fi
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:$PATH
     export PATH
-    debootstrap --arch=mipsel --include=vim,openssh-server,ntpdate,cron,locales,udev,fake-hwclock,mtd-utils,ca-certificates,apt-transport-https,vlan,libnl-3-200,libnl-genl-3-200 stretch $mp http://httpredir.debian.org/debian || exit 1
+    TARGET_RELEASE=buster
+    echo "## Building Debian $TARGET_RELEASE root filesystem..."
+    debootstrap --arch=mipsel --include=vim,openssh-server,ntpdate,cron,locales,udev,fake-hwclock,mtd-utils,ca-certificates,apt-transport-https,vlan,libnl-3-200,libnl-genl-3-200 $TARGET_RELEASE $mp http://httpredir.debian.org/debian || exit 1
     return 1
 }
 
