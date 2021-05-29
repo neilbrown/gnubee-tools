@@ -3,8 +3,8 @@
 
 # Running this script will copy the modules from
 # the in-memory tmpfs filesystem on the root filesystem,
-# and arrange that the tmpfs filesystem is no used in future
-# reboots
+# and arrange that the tmpfs filesystem is not used in
+# future reboots.
 
 keep() {
     mkdir /tmp/modules
