@@ -104,6 +104,17 @@ deb_data() {
 	esac
 }
 
+deb_deps() {
+	case `ar t $1` in
+	*control.tar.gz* )
+		ar p $1 control.tar.gz | tar xzOf - ./control
+		;;
+	*control.tar.xz* )
+		ar p $1 control.tar.xz | tar xJOf - ./control
+		;;
+	esac | sed -n -e 's/ *([^)]*)//g' -e 's/ //g' -e 's/^Depends://p'
+}
+
 gnubee_chroot() {
 	# use debootstrap to make a chroot with mipsel debian
 	# so we can copy some files into our initramfs
@@ -134,9 +145,6 @@ gnubee_chroot() {
 	ln -s /bin/true $deb/bin/mknod
 	chmod +x $deb/bin/id
 	EXTRA=debootstrap,ntpdate,wget,busybox,mdadm,dropbear-bin,cryptsetup-bin,mtd-utils,u-boot-tools,xfsprogs,btrfs-progs,lvm2,evtest,perl
-	EXTRA=$EXTRA,libdevmapper-event1.02.1,libdevmapper1.02.1,libpcre2-8-0,libreadline5
-	EXTRA=$EXTRA,libtomcrypt1,libcryptsetup12,libssl1.1,libpopt0,libtommath1,libaio1,libpsl5,libtinfo6,libunistring2,libgmp10
-	EXTRA=$EXTRA,libargon2-1,liblzma5,libp11-kit0,libjson-c3,liblz4-1,libtasn1-6,libhogweed4,libffi6,liblzo2-2
 	PATH=$deb/bin:$PATH DEBOOTSTRAP_DIR=$deb/usr/share/debootstrap/ \
 	 $deb/usr/sbin/debootstrap --keep-debootstrap-dir  --arch=mipsel --foreign  \
 	  --include=$EXTRA \
@@ -144,12 +152,23 @@ gnubee_chroot() {
 	if [ ! -e $deb/chroot/debootstrap/debpaths ]; then
 	    return 1
 	fi
-	for i in $(echo $EXTRA | tr , ' '); do
-	 (cd $deb/chroot
-	  echo I: Extracting $i...
-	  p=$(awk -v p=$i '$1 == p {print $2}' debootstrap/debpaths)
-	  deb_data ./$p
-	 )
+	want=$EXTRA
+	have=
+	while [ -n "$want" ]; do
+	  oldwant=$want
+	  want=""
+	  for i in $(echo $oldwant | tr , ' '); do
+	   case "$have" in
+	   *" $i "*);;
+	   *)
+	      have="$have $i "
+	      p=$(cd $deb/chroot ; awk -v p=$i '$1 == p {print $2}' debootstrap/debpaths)
+	      echo I: Extracting $i...
+	      (cd $deb/chroot; deb_data ./$p)
+	      dep=$(cd $deb/chroot; deb_deps ./$p)
+	      want="$want,$dep"
+	   esac
+	  done
 	done
 	return 0
 }
