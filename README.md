@@ -47,7 +47,7 @@ but fast.  This can be achieved by one of:
 If you are using a GnuBee you will need various packages installed.  To
 install them run:
 
-	sudo apt-get install make gcc flex bison busybox libnl-genl-3-dev
+	sudo apt-get install make gcc flex bison busybox
 
 On whichever machine you want to build the kernel (which could be a
 GnuBee) you will need:
