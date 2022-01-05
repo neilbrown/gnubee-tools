@@ -36,13 +36,11 @@ but fast.  This can be achieved by one of:
 
 1/ doing the full build on the GnuBee
 
-2/ setting up "ssh" access to the GnuBee, an providing the address in
+2/ setting up "ssh" access to the GnuBee, and providing the address in
    GNUBEE_SSH_HOST in the config file
 
 3/ Running "gbmake chroot" to create a local Debian filesystem using
    "debootstrap".  This can be run on any Linux distro (tested on openSUSE).
-   This option is a little fragile as some library dependencies need
-   to be hard-codes, but might change in the future.
 
 If you are using a GnuBee you will need various packages installed.  To
 install them run:
@@ -73,9 +71,9 @@ Building
 To build a firmware image you can
 
 	git clone https://github.com/neilbrown/gnubee-tools.git
-	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.6
+	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.15
 	cd linux
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.6
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.15
 
 If you run this on the GnuBee itself (with Debian installed), you need
 to ensure some swap space is configured, as "lzma" needs to allocate a
@@ -88,18 +86,18 @@ can be copied from `config.sample`.  In particular, `CROSS_COMPILE`
 and `GNUBEE_SSH_HOST` must be set.
 
 The above command will build firmware for a GnuBee PC1.
-If you have a PC2, specify "gbpc2-5.6" on the "gbmake firmware" command.
+If you have a PC2, specify "gbpc2-5.15" on the "gbmake firmware" command.
 
 I find that the `gbmake` step takes 3 3/4 hours on a GnuBee, and a
 little over 6 minutes on my octo-core 32GB RAM desktop.  The `git
 clone` of Linux takes roughly forever on the GnuBee due to limited
-memory, unles the "--depth" option is specifed as above.
+memory, unless the "--depth" option is specifed as above.
 Alternately, use
 
-	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.6.zip
-	unzip v5.6.zip
-	cd linux-gnubee-v5.6
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.6
+	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.15.zip
+	unzip v5.15.zip
+	cd linux-gnubee-v5.15
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.15
 
 
 If you want to just run `gbmake firmware` without the full path, you
@@ -109,13 +107,15 @@ won't work like that.
 Installing
 ----------
 
-The image created is placed in `gnubee-tools/build/gnubee-<version>-<variant>.bin`.  If
-you have this on the GnuBee and have `mtd-utils` installed, you can
-flash it with `flashcp -v gnubee-5.1-rc3-gbpc2.bin /dev/mtd3`.  Alternatively you
-can copy it to a VFAT filesystem on USB storage (do not forget to rename
-it to gnubee.bin), and boot with that storage plugged in.  This will cause the firmware
-to be copied to flash.  When one LED stops flashing and both LEDs are solid-on,
-remove the USB storage and reboot into the new firmware.
+The image created is placed in `gnubee-tools/build/gnubee-<version>-<variant>.bin`.
+
+If you have this on the GnuBee and have `mtd-utils` installed, you can
+flash it with `flashcp -v gnubee-5.15-gbpc2.bin /dev/mtd3`.
+Alternatively you can copy it to a VFAT filesystem on USB storage (do
+not forget to rename it to gnubee.bin), and boot with that storage
+plugged in.  This will cause the firmware to be copied to flash.  When
+one LED stops flashing and both LEDs are solid-on, remove the USB
+storage and reboot into the new firmware.
 
 First Boot
 ----------

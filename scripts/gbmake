@@ -39,6 +39,8 @@ command.  Known commands are:
  extern: makes external modules listed in config file
  gnubee.bin: "make uImage", then copy to /srv/tftpboot and $GNUBEE_BUILD_DIR
  firmware: run all of the above in the correct order
+ chroot: create a debian chroot from which to populate the initramfs
+         Use this if you don't have a Debian gnubee to copy files from.
  help: display this message
  -h: display help message
 
