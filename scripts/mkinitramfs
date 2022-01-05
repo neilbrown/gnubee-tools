@@ -62,9 +62,25 @@ from_chroot() {
  fi
 
  if [ "$1" = ldd ]; then
-    strings - $ch$2 | grep -a '\.so\.[0-9.]*$' | while read b; do
-	for d in /lib/mipsel-linux-gnu /usr/lib/mipsel-linux-gnu ; do	
-	  if [ -f "$ch$d/$b" ]; then echo " stuff $d/$b (mess)";  fi
+    want=" $2 "
+    have=""
+    while [ -n "$want" ] ; do
+	oldwant=$want
+	want=
+	for f in $oldwant; do
+	    case "$have" in
+		*" $f "* ) ;;
+		* ) again=yes
+		    have="$have $f "
+		    for f2 in $(strings - $ch$f | grep -a '\.so\.[0-9.]*$' | while read b; do
+				for d in /lib/mipsel-linux-gnu /usr/lib/mipsel-linux-gnu /lib ; do
+				  if [ -f "$ch$d/$b" ]; then echo $d/$b; fi
+				done
+			done); do
+			want="$want $f2"
+			echo " stuff $f2 (mess)"
+		    done
+	     esac
 	done
     done
     return
@@ -171,16 +187,6 @@ cat > etc/lvm/lvm.conf <<- END
 END
 
 libs=
-if [ "$remote" = "from_chroot" ]; then
-    # when installing from a chroot, we cannot run 'ldd', and "strings -" doesn't
-    # find all libraries, so we need to add some
-    libs="/lib/ld.so.1"
-    for l in cap-ng.so.0 pcre.so.3 pthread.so.0  unistring.so.2 gmp.so.10 ssl.so.1.1 \
-             argon2.so.1 lzma.so.5 p11-kit.so.0 json-c.so.3 lz4.so.1 tasn1.so.6 \
-	      hogweed.so.4 ffi.so.6
-    do libs="$libs /lib/mipsel-linux-gnu/lib$l"
-    done
-fi
 
 # install essential binaries
 for b in busybox findfs; do
