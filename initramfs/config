@@ -147,7 +147,7 @@ bootstrap() {
     export PATH
     debootstrap --arch=mipsel \
        --include=vim,openssh-server,ntpdate,cron,locales,udev,fake-hwclock,mtd-utils,ca-certificates,apt-transport-https,vlan \
-       stretch $mp http://httpredir.debian.org/debian || exit 1
+       stable $mp http://httpredir.debian.org/debian || exit 1
     return 1
 }
 
