@@ -217,6 +217,9 @@ gnubee_headers() {
 }
 
 gnubee_extern() {
+        if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+		return 0
+	fi
 	KO=`realpath ${GNUBEE_KERNEL_OBJECTS}`
 	KM=`realpath ${GNUBEE_INITRAMFS_TREE}`
 	for mod in $GNUBEE_EXTERN
