@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/mips 5.15.12 Kernel Configuration
+# Linux/mips 5.15.22 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="mipsel-unknown-linux-gnu-gcc (GCC) 7.2.0"
 CONFIG_CC_IS_GCC=y
@@ -1883,7 +1883,7 @@ CONFIG_ICPLUS_PHY=y
 # CONFIG_MARVELL_10G_PHY is not set
 # CONFIG_MARVELL_88X2222_PHY is not set
 # CONFIG_MAXLINEAR_GPHY is not set
-# CONFIG_MEDIATEK_GE_PHY is not set
+CONFIG_MEDIATEK_GE_PHY=y
 # CONFIG_MICREL_PHY is not set
 # CONFIG_MICROCHIP_PHY is not set
 # CONFIG_MICROCHIP_T1_PHY is not set
