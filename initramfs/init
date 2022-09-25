@@ -7,7 +7,22 @@ set_led() {
     if [ "x$led" != "xsystem" ]; then
 	led=status
     fi
-    ( cd /sys/class/leds/gb-pc1:green:$led;
+    # in 5.19 the names of the LEDs changed. groan.
+    case $led in
+	system )
+	    path=/sys/class/leds/gb-pc1:green:system
+	    if [ ! -e $path ]; then
+		path=/sys/class/leds/green:power
+	    fi
+	    ;;
+	status )
+	    path=/sys/class/leds/gb-pc1:green:status
+	    if [ ! -e $path ]; then
+		path=/sys/class/leds/green:system
+	    fi
+	    ;;
+    esac		
+    ( cd $path
       case $# in
 	  3 )
 	      echo timer > trigger
