@@ -22,6 +22,10 @@ set_led() {
 	    fi
 	    ;;
     esac
+    if [ ! -e $path ]; then
+	# weird - no LEDs
+	return
+    fi
     ( cd $path
       case $# in
 	  3 )
