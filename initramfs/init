@@ -169,6 +169,11 @@ gnubee_boot(){
     # eth0 needs to be up to able to access ports through the switch
     ifconfig eth0 up
 
+    # Linux 5.19 renamed ethblue on gb-pc1 to eth1.  We rename it back for compatability
+    if [ -e /sys/class/net/eth1 -a ! -e /sys/class/net/ethblue ]; then
+	ip link set eth1 name ethblue
+    fi
+
     ip link set ethblack address `echo $addr | tr ' ' :`
     addr=`next_addr "$addr"`
     ip link set ethblue address `echo $addr | tr ' ' :`
