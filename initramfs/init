@@ -21,13 +21,16 @@ set_led() {
 		path=/sys/class/leds/green:system
 	    fi
 	    ;;
-    esac		
+    esac
     ( cd $path
       case $# in
 	  3 )
 	      echo timer > trigger
 	      echo $2 > delay_on
 	      echo $3 > delay_off
+	      ;;
+	  2 )
+	      echo $2 > trigger
 	      ;;
 	  * ) echo none > trigger
       esac
@@ -119,8 +122,8 @@ gnubee_switch_root(){
 	ifconfig $dev down
     done
 
-    set_led system
-    set_led status
+    set_led system default-on # power
+    set_led status disk-activity # system
 
     umount -l /proc /sys /dev/pts /dev
     exec switch_root /mnt/root /sbin/init
