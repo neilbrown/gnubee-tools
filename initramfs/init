@@ -62,18 +62,6 @@ run_shell() {
     setsid sh -c "exec sh < $tty > $tty 2>&1"
 }
 
-need_fix_interfaces() {
-    if ip link | grep ethbl > /dev/null &&
-	    [ -d /mnt/root/etc/network ]; then
-	if grep ethbl /mnt/root/etc/network/interfaces \
-		/mnt/root/etc/network/interfaces.d/* > /dev/null ; then
-	    # already fixed
-	    return 1;
-	fi
-    fi
-    return 0
-}
-
 gnubee_switch_root(){
     echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
     r=`uname -r`
@@ -90,26 +78,6 @@ gnubee_switch_root(){
 	chmod -R go-w /mnt/root/lib/modules
     fi
 
-    # If this kernel uses ethblack and ethblue, and /etc/network/interfaces*
-    # doesn't mention them, then we need to do something, else host will
-    # be inaccessible if there is no console.
-    # So copy /etc/network to /etc/network.dup, change the eth names, and
-    # bind-mount it over.
-    if need_fix_interfaces; then
-	cp -r /mnt/root/etc/network /tmp/network
-	mount -o nosuid,nodev -t tmpfs tmpfs /mnt/root/etc/network
-	cp -r /tmp/network/. /mnt/root/etc/network/.
-	chmod -R go-w /mnt/root/etc/network
-	sed -i -e '/^[^#]/s/eth0.1/ethblack/' -e '/^[^#]/s/eth0.2/ethblue/' \
-	    /mnt/root/etc/network/interfaces /mnt/root/etc/network/interfaces.d/*
-	# This kernel supports the switch through DSA, so set_switch cannot see it.
-	( cd /mnt/root/etc/network/script.d
-	  [ -f no_switch ] && echo exit 1 > no_switch
-	  [ -f set_switch ] && echo exit 0 > set_switch
-	  )
-	echo ===== Created temporary /etc/network to handle new interface names ======
-    fi
-
     # kill and dhcp daemon running
     killall udhcpd > /dev/null 2>&1
     killall udhcpc > /dev/null 2>&1
@@ -121,7 +89,7 @@ gnubee_switch_root(){
     # 'down' the network interfaces, but leave the vlans in place
     # as user-space will expect them.  eth0 needs to stay up so
     # that the vlan/DSA interfaces work
-    for dev in eth0.1 eth0.2 ethblack ethblue eth1
+    for dev in ethblack ethblue eth1
     do
 	ifconfig $dev down
     done

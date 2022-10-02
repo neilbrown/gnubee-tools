@@ -221,7 +221,7 @@ until set_host && set_passwd && set_net && set_time && create_filesystem && boot
 done
 
 umount /tmp/newroot
-if check_net && [ $net_dev != "ethblack" -a $net_dev != "eth0.1" ]; then
+if check_net && [ $net_dev != "ethblack" ]; then
     echo "### REMEMBER: plug the network cable into the first (black) port for normal boot".
 fi
 
