@@ -58,7 +58,7 @@ in the initramfs are:
 	sudo apt-get install mdadm dropbear cryptsetup-bin \
 		mtd-utils u-boot-tools xfsprogs btrfs-progs lvm2 evtest
 
-If you want to build firmware that can be used to install debian, you
+If you want to build firmware that can be used to install Debian, you
 also need
 
 	sudo apt-get install debootstrap
@@ -71,9 +71,9 @@ Building
 To build a firmware image you can
 
 	git clone https://github.com/neilbrown/gnubee-tools.git
-	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.15
+	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.19
 	cd linux
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.15
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.19
 
 If you run this on the GnuBee itself (with Debian installed), you need
 to ensure some swap space is configured, as "lzma" needs to allocate a
@@ -91,13 +91,13 @@ If you have a PC2, specify "gbpc2-5.15" on the "gbmake firmware" command.
 I find that the `gbmake` step takes 3 3/4 hours on a GnuBee, and a
 little over 6 minutes on my octo-core 32GB RAM desktop.  The `git
 clone` of Linux takes roughly forever on the GnuBee due to limited
-memory, unless the "--depth" option is specifed as above.
+memory, unless the "--depth" option is specified as above.
 Alternately, use
 
-	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.15.zip
-	unzip v5.15.zip
-	cd linux-gnubee-v5.15
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.15
+	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.19.zip
+	unzip v5.19.zip
+	cd linux-gnubee-v5.19
+	../gnubee-tools/scripts/gbmake firmware gbpc1-5.19
 
 
 If you want to just run `gbmake firmware` without the full path, you
@@ -140,7 +140,9 @@ isn't much help.
 If you hold the small black button during boot, the firmware will
 notice and will not even look for `GNUBEE-ROOT` but will start a shell
 and, importantly, configure the network and start the "dropbear" ssh
-daemon.
+daemon.  Note that if you press the button too early, the u-boot loader
+will notice and decide to try to load something from the network.  You
+need to wait about 10 seconds.
 
 The first network port (black) is by default configured with address
 192.168.10.1.  The second (blue) port is configured to use DHCP to
