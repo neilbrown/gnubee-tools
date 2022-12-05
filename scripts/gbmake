@@ -27,6 +27,7 @@ export GNUBEE_INITRAMFS_PATH=`realpath $GNUBEE_INITRAMFS_TREE`
 touch $GNUBEE_KERNEL_OBJECTS/initramfs-files.txt
 export GNUBEE_INITRAMFS_FILES=`realpath $GNUBEE_KERNEL_OBJECTS/initramfs-files.txt`
 export GNUBEE_SSH_HOST
+
 help() {
 cat << END
 Usage: gbmake [ defconfig* | headers | initramfs | modules | gnubee.bin | ...]
@@ -51,15 +52,15 @@ END
 
 gnubee_model() {
     case `grep machine /proc/cpuinfo` in
-	*GB-PC1* ) prefix=gbpc1;;
-	*GB-PC2* ) prefix=gbpc2;;
-	* ) echo UNKNOWN; return 1
+    *GB-PC1* ) prefix=gbpc1;;
+    *GB-PC2* ) prefix=gbpc2;;
+    * ) echo UNKNOWN; return 1
     esac
     if [ ! -c /dev/mtd0 ]; then
-	echo UNKNOWN; return 1
+        echo UNKNOWN; return 1
     fi
     if [ ! -f Makefile ]; then
-	echo "No-version"; return 1
+        echo "No-version"; return 1
     fi
     vers=`awk '$1=="VERSION" {v=$3} $1=="PATCHLEVEL" {p=$3} END {printf "%d.%d\n",v,p}' Makefile`
     echo "$prefix-$vers"
@@ -67,250 +68,247 @@ gnubee_model() {
 }
 
 gnubee_defconfig() {
-	mach=${1#defconfig_}
-	mach=${mach#defconfig-}
-	mach=${mach%-defconfig}
-	mach=${mach%_defconfig}
-	case $mach in
-	    "" | defconfig ) # guess
-		if mach=`gnubee_model`; then
-		    echo Using config $mach
-		else
-		    echo >&2 Cannot guess machine type
-		    mach=
-		fi
-	esac
-	if [ -f "$GNUBEE_CONFIG_DIR/$mach" ]; then
-		mkdir -p "$GNUBEE_KERNEL_OBJECTS"
-		cp "$GNUBEE_CONFIG_DIR/$mach" "$GNUBEE_KERNEL_OBJECTS/.config"
-		make O="$GNUBEE_KERNEL_OBJECTS" oldconfig
-	else
-		[ -n "$mach" ] && echo >&2 "Config file '$mach' does not exist"
-		echo >&2 "Please choose one of:"
-		ls -C "$GNUBEE_CONFIG_DIR" | sed 's/^/    /' >&2
-		exit 1
-	fi
-	# This must at least exist for any compile
-	mkdir -p "${GNUBEE_INITRAMFS_TREE}"
-	touch "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
+    mach=${1#defconfig_}
+    mach=${mach#defconfig-}
+    mach=${mach%-defconfig}
+    mach=${mach%_defconfig}
+    case $mach in
+      "" | defconfig ) # guess
+        if mach=`gnubee_model`; then
+            echo Using config $mach
+        else
+            echo >&2 Cannot guess machine type
+            mach=
+        fi
+    esac
+    if [ -f "$GNUBEE_CONFIG_DIR/$mach" ]; then
+        mkdir -p "$GNUBEE_KERNEL_OBJECTS"
+        cp "$GNUBEE_CONFIG_DIR/$mach" "$GNUBEE_KERNEL_OBJECTS/.config"
+        make O="$GNUBEE_KERNEL_OBJECTS" oldconfig
+    else
+        [ -n "$mach" ] && echo >&2 "Config file '$mach' does not exist"
+        echo >&2 "Please choose one of:"
+        ls -C "$GNUBEE_CONFIG_DIR" | sed 's/^/    /' >&2
+        exit 1
+    fi
+    # This must at least exist for any compile
+    mkdir -p "${GNUBEE_INITRAMFS_TREE}"
+    touch "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
 }
 
 deb_data() {
-	case `ar t $1` in
-	*data.tar.gz* )
-		ar p $1 data.tar.gz | tar xzf - 
-		;;
-	*data.tar.xz* )
-		ar p $1 data.tar.xz | tar xJf - 
-		;;
-	esac
+    case `ar t $1` in
+    *data.tar.gz* )
+        ar p $1 data.tar.gz | tar xzf -
+        ;;
+    *data.tar.xz* )
+        ar p $1 data.tar.xz | tar xJf -
+        ;;
+    esac
 }
 
 deb_deps() {
-	case `ar t $1` in
-	*control.tar.gz* )
-		ar p $1 control.tar.gz | tar xzOf - ./control
-		;;
-	*control.tar.xz* )
-		ar p $1 control.tar.xz | tar xJOf - ./control
-		;;
-	esac | sed -n -e 's/ *([^)]*)//g' -e 's/ //g' -e 's/^Depends://p'
+    case `ar t $1` in
+    *control.tar.gz* )
+        ar p $1 control.tar.gz | tar xzOf - ./control
+        ;;
+    *control.tar.xz* )
+        ar p $1 control.tar.xz | tar xJOf - ./control
+        ;;
+    esac | sed -n -e 's/ *([^)]*)//g' -e 's/ //g' -e 's/^Depends://p'
 }
 
 gnubee_chroot() {
-	# use debootstrap to make a chroot with mipsel debian
-	# so we can copy some files into our initramfs
-	deb=$GNUBEE_BUILD_DIR/deb
-	mkdir -p $deb
-	if [ ! -f $deb/usr/sbin/debootstrap ]; then
-	    # need to get debootstrap
-	    URL=`wget 2> /dev/null  -O - https://packages.debian.org/stable/all/debootstrap/download |
-		   sed -n -e 's,^.*\(http://ftp.debian.org/[^"]*\)".*,\1,p'`
-	    case $URL in
-		http:*_all.deb ) ;;
-		* ) echo >&2 ERROR cannot find deb file for debootstrap, sorry.
-		    exit 1
-	    esac
-	    rm -f $deb/*
-	    wget -O $deb/debootstrap.deb "$URL"
-	    (cd $deb; deb_data debootstrap.deb )
-	    if [ ! -f $deb/usr/sbin/debootstrap ]; then
-		echo >&2 ERROR failed to download debootstrap package
-		exit 1
-	    fi
-	fi
+    # use debootstrap to make a chroot with mipsel debian
+    # so we can copy some files into our initramfs
+    deb=$GNUBEE_BUILD_DIR/deb
+    mkdir -p $deb
+    if [ ! -f $deb/usr/sbin/debootstrap ]; then
+        # need to get debootstrap
+        URL=`wget 2> /dev/null  -O - https://packages.debian.org/stable/all/debootstrap/download |
+             sed -n -e 's,^.*\(http://ftp.debian.org/[^"]*\)".*,\1,p'`
+        case $URL in
+          http:*_all.deb ) ;;
+          * ) echo >&2 ERROR cannot find deb file for debootstrap, sorry.
+              exit 1
+        esac
+        rm -f $deb/*
+        wget -O $deb/debootstrap.deb "$URL"
+        ( cd $deb; deb_data debootstrap.deb )
+        if [ ! -f $deb/usr/sbin/debootstrap ]; then
+            echo >&2 ERROR failed to download debootstrap package
+            exit 1
+        fi
+    fi
 
-	rm -rf $deb/chroot $deb/bin
-	mkdir $deb/chroot
-	mkdir -p $deb/bin
-	echo "echo 0" > $deb/bin/id
-	ln -s /bin/true $deb/bin/mknod
-	chmod +x $deb/bin/id
-	EXTRA=debootstrap,ntpdate,wget,busybox,mdadm,dropbear-bin
-	EXTRA=$EXTRA,cryptsetup-bin,mtd-utils,u-boot-tools,xfsprogs,btrfs-progs
-	EXTRA=$EXTRA,lvm2,evtest,perl
-	EXTRA=$EXTRA,fdisk,strace
-	PATH=$deb/bin:$PATH DEBOOTSTRAP_DIR=$deb/usr/share/debootstrap/ \
-	 $deb/usr/sbin/debootstrap --keep-debootstrap-dir  --arch=mipsel --foreign  \
-	  --include=$EXTRA \
-	  stable $deb/chroot/ http://deb.debian.org/debian/
-	if [ ! -e $deb/chroot/debootstrap/debpaths ]; then
-	    return 1
-	fi
-	want=$EXTRA
-	have=
-	while [ -n "$want" ]; do
-	  oldwant=$want
-	  want=""
-	  for i in $(echo $oldwant | tr , ' '); do
-	   case "$have" in
-	   *" $i "*);;
-	   *)
-	      have="$have $i "
-	      p=$(cd $deb/chroot ; awk -v p=$i '$1 == p {print $2}' debootstrap/debpaths)
-	      echo I: Extracting $i...
-	      (cd $deb/chroot; deb_data ./$p)
-	      dep=$(cd $deb/chroot; deb_deps ./$p)
-	      want="$want,$dep"
-	   esac
-	  done
-	done
-	return 0
+    rm -rf $deb/chroot $deb/bin
+    mkdir $deb/chroot
+    mkdir -p $deb/bin
+    echo "echo 0" > $deb/bin/id
+    ln -s /bin/true $deb/bin/mknod
+    chmod +x $deb/bin/id
+    EXTRA=debootstrap,ntpdate,wget,busybox,mdadm,dropbear-bin
+    EXTRA=$EXTRA,cryptsetup-bin,mtd-utils,u-boot-tools,xfsprogs,btrfs-progs
+    EXTRA=$EXTRA,lvm2,evtest,perl
+    EXTRA=$EXTRA,fdisk,strace
+    PATH=$deb/bin:$PATH DEBOOTSTRAP_DIR=$deb/usr/share/debootstrap/ \
+      $deb/usr/sbin/debootstrap --keep-debootstrap-dir --arch=mipsel --foreign  \
+        --include=$EXTRA \
+        stable $deb/chroot/ http://deb.debian.org/debian/
+    if [ ! -e $deb/chroot/debootstrap/debpaths ]; then
+        return 1
+    fi
+    want=$EXTRA
+    have=
+    while [ -n "$want" ]; do
+        oldwant=$want
+        want=""
+        for i in $(echo $oldwant | tr , ' '); do
+            case "$have" in
+            *" $i "*);;
+            *)
+                have="$have $i "
+                p=$(cd $deb/chroot ; awk -v p=$i '$1 == p {print $2}' debootstrap/debpaths)
+                echo I: Extracting $i...
+                (cd $deb/chroot; deb_data ./$p)
+                dep=$(cd $deb/chroot; deb_deps ./$p)
+                want="$want,$dep"
+            esac
+        done
+    done
+    return 0
 }
 
 gnubee_initramfs() {
-	i=${GNUBEE_INITRAMFS_TREE}
-	mkdir -p "$i"
-	case `realpath "$i"` in
-		/ ) echo >&2 Cannot use root as initramfs tree.; exit 1
-	esac
+    i=${GNUBEE_INITRAMFS_TREE}
+    mkdir -p "$i"
+    case `realpath "$i"` in
+      / ) echo >&2 Cannot use root as initramfs tree.; exit 1
+    esac
 
-	rm -rf "$i"; mkdir "$i"
-	mkdir -p "$GNUBEE_KERNEL_OBJECTS"
-	$gbtools/scripts/mkinitramfs "$i" "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
-	echo "initramfs: $(du -sh "$i")"
+    rm -rf "$i"; mkdir "$i"
+    mkdir -p "$GNUBEE_KERNEL_OBJECTS"
+    $gbtools/scripts/mkinitramfs "$i" "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
+    echo "initramfs: $(du -sh "$i")"
 }
 
 gnubee_modules() {
-	case `realpath $GNUBEE_INITRAMFS_TREE/lib` in
-		/lib ) echo >&2 Cannot use root as initramfs tree.; exit 1
-	esac
-	rm -rf "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*
-	make O="$GNUBEE_KERNEL_OBJECTS" \
-		INSTALL_MOD_PATH="`realpath $GNUBEE_INITRAMFS_TREE`" \
-		INSTALL_MOD_STRIP=1 \
-		modules modules_install
-	rm -f "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*/{build,source}
-	{ echo "This file is examined by the initramfs on boot" ;
-	  date ; }  > "$GNUBEE_INITRAMFS_TREE/lib/modules/stamp"
-	# Module.symvers will get replaced when we make uImage
-	cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers" "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" 
+    case `realpath $GNUBEE_INITRAMFS_TREE/lib` in
+      /lib ) echo >&2 Cannot use root as initramfs tree.; exit 1
+    esac
+    rm -rf "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*
+    make O="$GNUBEE_KERNEL_OBJECTS" \
+        INSTALL_MOD_PATH="`realpath $GNUBEE_INITRAMFS_TREE`" \
+        INSTALL_MOD_STRIP=1 \
+        modules modules_install
+    rm -f "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*/{build,source}
+    { echo "This file is examined by the initramfs on boot" ;
+      date ; } > "$GNUBEE_INITRAMFS_TREE/lib/modules/stamp"
+    # Module.symvers will get replaced when we make uImage
+    cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers" "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"
 }
 
 gnubee_headers() {
-	case `realpath $GNUBEE_BUILD_DIR/` in
-		/usr | / ) echo >&2 Cannot build to /usr or /.; exit 1
-	esac
-	rm -rf "$GNUBEE_BUILD_DIR/include"
-	make O="$GNUBEE_KERNEL_OBJECTS" INSTALL_HDR_PATH="$GNUBEE_BUILD_DIR" \
-		headers_install
+    case `realpath $GNUBEE_BUILD_DIR/` in
+      /usr | / ) echo >&2 Cannot build to /usr or /.; exit 1
+    esac
+    rm -rf "$GNUBEE_BUILD_DIR/include"
+    make O="$GNUBEE_KERNEL_OBJECTS" INSTALL_HDR_PATH="$GNUBEE_BUILD_DIR" headers_install
 }
 
 gnubee_extern() {
-        if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
-		return 0
-	fi
-	KO=`realpath ${GNUBEE_KERNEL_OBJECTS}`
-	KM=`realpath ${GNUBEE_INITRAMFS_TREE}`
-	for mod in $GNUBEE_EXTERN
-	do
-		if [ -d "$mod" ]; then (
-			cd "$mod"
-			if make -k KSRC=$KO M=`pwd` modules &&
-			   make -C $KO M=`pwd` INSTALL_MOD_PATH=$KM INSTALL_MOD_STRIP=1 modules_install
-			then :
-			else echo >&2 Failed to build $mod 
-			     exit 1;
-			fi
-		) elif [ -f "$mod" ]; then
-			sh $mod $KO $KM || {
-				echo >&2 Failed to build $mod
-				exit 1;
-			}
-		else
-			echo >&2 External module $mod not found
-			exit 1
-		fi
-
-	done
+    if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+        return 0
+    fi
+    KO=`realpath ${GNUBEE_KERNEL_OBJECTS}`
+    KM=`realpath ${GNUBEE_INITRAMFS_TREE}`
+    for mod in $GNUBEE_EXTERN
+    do
+        if [ -d "$mod" ]; then (
+            cd "$mod"
+            if make -k KSRC=$KO M=`pwd` modules &&
+               make -C $KO M=`pwd` INSTALL_MOD_PATH=$KM INSTALL_MOD_STRIP=1 modules_install
+            then :
+            else echo >&2 Failed to build $mod
+                exit 1;
+            fi
+        ) elif [ -f "$mod" ]; then
+            sh $mod $KO $KM || {
+                echo >&2 Failed to build $mod
+                exit 1;
+            }
+        else
+            echo >&2 External module $mod not found
+            exit 1
+        fi
+    done
 }
 
 gnubee_bin() {
-	if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
-		echo >&2 "Please run 'gbmake initramfs' first"
-		exit 1
-	fi
-	make O="$GNUBEE_KERNEL_OBJECTS" uImage.bin || exit 1
-	if [ -f  "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" ]; then
-		# "make uImage" removes module info from Module.symvers.
-		cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"	\
-		   "$GNUBEE_KERNEL_OBJECTS/Module.symvers" 
-	fi
-	if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" \
-		/srv/tftpboot/GB-PCx_uboot.bin
-	then
-		ls -lh /srv/tftpboot/GB-PCx_uboot.bin
-	fi
-	V=`sed -n 's/^VERSION = //p' Makefile`
-	P=`sed -n 's/^PATCHLEVEL = //p' Makefile`
-	S=`sed -n 's/^SUBLEVEL = //p' Makefile`
-	X=`sed -n 's/^EXTRAVERSION = //p' Makefile`
-	if [ " $S" = " " -o " $S" = " 0" ]; then
-	    vers="$V.$P$X"
-	else
-	    vers="$V.$P.$S$X"
-	fi
-	if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
-	    suffix="${vers}-gbpc2"
-	else
-	    if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
-		suffix="${vers}-gbpc1u"
-	    else
-	        suffix="${vers}-gbpc1"
-	    fi
-	fi
+    if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
+        echo >&2 "Please run 'gbmake initramfs' first"
+        exit 1
+    fi
+    make O="$GNUBEE_KERNEL_OBJECTS" uImage.bin || exit 1
+    if [ -f  "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" ]; then
+        # "make uImage" removes module info from Module.symvers.
+        cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"	\
+           "$GNUBEE_KERNEL_OBJECTS/Module.symvers"
+    fi
+    if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" \
+          /srv/tftpboot/GB-PCx_uboot.bin
+    then
+        ls -lh /srv/tftpboot/GB-PCx_uboot.bin
+    fi
+    V=`sed -n 's/^VERSION = //p' Makefile`
+    P=`sed -n 's/^PATCHLEVEL = //p' Makefile`
+    S=`sed -n 's/^SUBLEVEL = //p' Makefile`
+    X=`sed -n 's/^EXTRAVERSION = //p' Makefile`
+    if [ " $S" = " " -o " $S" = " 0" ]; then
+        vers="$V.$P$X"
+    else
+        vers="$V.$P.$S$X"
+    fi
+    if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+        suffix="${vers}-gbpc2"
+    else
+        if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+            suffix="${vers}-gbpc1u"
+        else
+            suffix="${vers}-gbpc1"
+        fi
+    fi
 
-	cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
-	ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+    cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+    ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
 }
 
 gnubee_firmware() {
-	mkdir -p initramfs
-	{ [ -f "$GNUBEE_KERNEL_OBJECTS/.config" ] || gnubee_defconfig ${1}; } &&
-	make O="$GNUBEE_KERNEL_OBJECTS"  ${2--j4} &&
-	gnubee_headers &&
-	{ [ -f "$GNUBEE_INITRAMFS_TREE"/init ] || gnubee_initramfs ; } &&
-	gnubee_modules &&
-	gnubee_extern &&
-	gnubee_bin
+    mkdir -p initramfs
+    { [ -f "$GNUBEE_KERNEL_OBJECTS/.config" ] || gnubee_defconfig ${1}; } &&
+    make O="$GNUBEE_KERNEL_OBJECTS" ${2--j4} &&
+    gnubee_headers &&
+    { [ -f "$GNUBEE_INITRAMFS_TREE"/init ] || gnubee_initramfs ; } &&
+    gnubee_modules &&
+    gnubee_extern &&
+    gnubee_bin
 }
 
-
 case $1 in
- defconfig* | *defconfig ) gnubee_defconfig $1;;
- chroot ) gnubee_chroot ;;
- initramfs ) gnubee_initramfs;;
- modules ) gnubee_modules ;;
- headers ) gnubee_headers ;;
- extern ) gnubee_extern ;;
- gnubee.bin ) gnubee_bin  ;;
- firmware ) gnubee_firmware $2 $3;;
- help | -h ) help ;;
+  defconfig* | *defconfig ) gnubee_defconfig $1;;
+  chroot ) gnubee_chroot ;;
+  initramfs ) gnubee_initramfs;;
+  modules ) gnubee_modules ;;
+  headers ) gnubee_headers ;;
+  extern ) gnubee_extern ;;
+  gnubee.bin ) gnubee_bin  ;;
+  firmware ) gnubee_firmware $2 $3;;
+  help | -h ) help ;;
 
- * )
-    if [ ! -f "$GNUBEE_KERNEL_OBJECTS/.config" ]; then
-	echo >&2 Please run gbmake defconfig_XX first
-	exit 1
-    fi
-    make O="$GNUBEE_KERNEL_OBJECTS" ${1+"$@"}
+  * )
+      if [ ! -f "$GNUBEE_KERNEL_OBJECTS/.config" ]; then
+          echo >&2 Please run gbmake defconfig_XX first
+          exit 1
+      fi
+      make O="$GNUBEE_KERNEL_OBJECTS" ${1+"$@"}
 esac
