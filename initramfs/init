@@ -155,12 +155,16 @@ gnubee_boot(){
     blkid -t TYPE=vfat -o device | while read path; do
         modprobe vfat
         if mount -t vfat $path /mnt; then
-            cat /mnt/gnubee-config.txt >> /gnubee-config.txt
+            tr -d '\015' < /mnt/gnubee-config.txt >> /gnubee-config.txt
             umount /mnt
         fi
         rmmod vfat
     done
-    [ -f /gnubee-config.txt ] && source /gnubee-config.txt
+    [ -f /gnubee-config.txt ] && {
+        set -x
+        source /gnubee-config.txt
+        set +x
+    }
 
     if [ " $CONFIGURE_NET" = " yes" ] || evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
         set_led system 800 200
@@ -174,6 +178,7 @@ gnubee_boot(){
             udhcpd_config ethblack 192.168.10
             udhcpd /udhcpd.conf
         fi
+        ifconfig ethblack
         if [ ! -s /etc/dropbear/dropbear_ecdsa_host_key ]; then
             # build host didn't have dropbear, so make a new key on each boot
             dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
