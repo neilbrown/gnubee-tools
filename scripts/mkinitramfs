@@ -297,6 +297,11 @@ $remote busybox --list |
 # copy in some scripts
 for i in $gbtools/initramfs/*
 do
-    echo "## Install script `basename $i`"
+    base=`basename $i`
+    if [ "$add_optional" != "yes" -a "$base" == "config" ] ; then
+        # config doesn't work without optional tools
+        continue;
+    fi
+    echo "## Install script $base"
     cp -r $i .
 done
