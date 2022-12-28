@@ -5,38 +5,38 @@ set_led() {
     modprobe leds_gpio
     led=$1
     if [ "x$led" != "xsystem" ]; then
-	led=status
+        led=status
     fi
     # in 5.19 the names of the LEDs changed. groan.
     case $led in
-	system )
-	    path=/sys/class/leds/gb-pc1:green:system
-	    if [ ! -e $path ]; then
-		path=/sys/class/leds/green:power
-	    fi
-	    ;;
-	status )
-	    path=/sys/class/leds/gb-pc1:green:status
-	    if [ ! -e $path ]; then
-		path=/sys/class/leds/green:system
-	    fi
-	    ;;
+    system )
+        path=/sys/class/leds/gb-pc1:green:system
+        if [ ! -e $path ]; then
+            path=/sys/class/leds/green:power
+        fi
+        ;;
+    status )
+        path=/sys/class/leds/gb-pc1:green:status
+        if [ ! -e $path ]; then
+            path=/sys/class/leds/green:system
+        fi
+        ;;
     esac
     if [ ! -e $path ]; then
-	# weird - no LEDs
-	return
+        # weird - no LEDs
+        return
     fi
     ( cd $path
       case $# in
-	  3 )
-	      echo timer > trigger
-	      echo $2 > delay_on
-	      echo $3 > delay_off
-	      ;;
-	  2 )
-	      echo $2 > trigger
-	      ;;
-	  * ) echo none > trigger
+      3 )
+          echo timer > trigger
+          echo $2 > delay_on
+          echo $3 > delay_off
+          ;;
+      2 )
+          echo $2 > trigger
+          ;;
+      * ) echo none > trigger
       esac
     )
 }
@@ -45,12 +45,12 @@ udhcpd_config() {
     if=$1
     net=$2
     {
-	echo "start $net.10"
-	echo "end $net.250"
-	echo "interface $if"
-	echo "lease_file /tmp/udhcpd.leases"
-	echo "pidfile /tmp/udhcpd.pid"
-	echo "opt subnet 255.255.255.0"
+        echo "start $net.10"
+        echo "end $net.250"
+        echo "interface $if"
+        echo "lease_file /tmp/udhcpd.leases"
+        echo "pidfile /tmp/udhcpd.pid"
+        echo "opt subnet 255.255.255.0"
     } > /udhcpd.conf
 }
 
@@ -66,23 +66,23 @@ gnubee_switch_root(){
     echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
     r=`uname -r`
     if [ -d /mnt/root/lib/modules/$r ] &&
-	   [ -f /mnt/root/lib/modules/stamp ] &&
-	   [ " `cat /lib/modules/stamp`" = " `cat /mnt/root/lib/modules/stamp`" ]
+       [ -f /mnt/root/lib/modules/stamp ] &&
+       [ " `cat /lib/modules/stamp`" = " `cat /mnt/root/lib/modules/stamp`" ]
     then : skip - already installed
     else
-	# ensure modules are available
-	mount -o nosuid,nodev -t tmpfs tmpfs /mnt/root/lib/modules
-	cp -a /lib/modules/. /mnt/root/lib/modules/
-	# and "keep" is needed of course
-	cp /keep /mnt/root/lib/modules/
-	chmod -R go-w /mnt/root/lib/modules
+        # ensure modules are available
+        mount -o nosuid,nodev -t tmpfs tmpfs /mnt/root/lib/modules
+        cp -a /lib/modules/. /mnt/root/lib/modules/
+        # and "keep" is needed of course
+        cp /keep /mnt/root/lib/modules/
+        chmod -R go-w /mnt/root/lib/modules
     fi
 
-    # kill and dhcp daemon running
+    # kill all running dhcp daemons
     killall udhcpd > /dev/null 2>&1
     killall udhcpc > /dev/null 2>&1
 
-    # stop and unused md arrays, so they can be restarted with
+    # stop all unused md arrays, so they can be restarted with
     # the correct name
     mdadm -Ss > /dev/null 2>&1
 
@@ -91,7 +91,7 @@ gnubee_switch_root(){
     # that the vlan/DSA interfaces work
     for dev in ethblack ethblue eth1
     do
-	ifconfig $dev down
+        ifconfig $dev down
     done
 
     set_led system default-on # power
@@ -134,12 +134,12 @@ gnubee_boot(){
     addr=`dd 2> /dev/null if=/dev/mtd2 bs=1 skip=57344 count=6 | od -t x1 -A none`
 
 
-    # eth0 needs to be up to able to access ports through the switch
+    # eth0 needs to be up to be able to access ports through the switch
     ifconfig eth0 up
 
-    # Linux 5.19 renamed ethblue on gb-pc1 to eth1.  We rename it back for compatability
+    # Linux 5.19 renamed ethblue on gb-pc1 to eth1.  We rename it back for compatibility
     if [ -e /sys/class/net/eth1 -a ! -e /sys/class/net/ethblue ]; then
-	ip link set eth1 name ethblue
+        ip link set eth1 name ethblue
     fi
 
     ip link set ethblack address `echo $addr | tr ' ' :`
@@ -153,100 +153,100 @@ gnubee_boot(){
 
     # Load a config file
     blkid -t TYPE=vfat -o device | while read path; do
-	modprobe vfat
-	if mount -t vfat $path /mnt; then
-	    cat /mnt/gnubee-config.txt >> /gnubee-config.txt
-	    umount /mnt
-	fi
-	rmmod vfat
+        modprobe vfat
+        if mount -t vfat $path /mnt; then
+            cat /mnt/gnubee-config.txt >> /gnubee-config.txt
+            umount /mnt
+        fi
+        rmmod vfat
     done
     [ -f /gnubee-config.txt ] && source /gnubee-config.txt
 
     if [ " $CONFIGURE_NET" = " yes" ] || evtest --query /dev/input/event0 EV_KEY KEY_RESTART; then
-	set_led system 800 200
-	# Blue RJ-45 uses DHCP
-	ifconfig ethblue up ; udhcpc -b -i ethblue -s /udhcpc.script > /dev/null 2>&1
-	# Black RJ-45 (nearest to power jack) has a static address and DHCP server
-	if [ " $CONFIGURE_BLACK_IP" != " " ]; then
-	    ifconfig ethblack $CONFIGURE_BLACK_IP up
-	else
-	    ifconfig ethblack 192.168.10.1
-	    udhcpd_config ethblack 192.168.10
-	    udhcpd /udhcpd.conf
-	fi
-	if [ ! -s /etc/dropbear/dropbear_ecdsa_host_key ]; then
-	    # build host didn't have dropbear, so make a new key on each boot
-	    dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
-	fi
-	dropbear
+        set_led system 800 200
+        # Blue RJ-45 uses DHCP
+        ifconfig ethblue up ; udhcpc -b -i ethblue -s /udhcpc.script > /dev/null 2>&1
+        # Black RJ-45 (nearest to power jack) has a static address and DHCP server
+        if [ " $CONFIGURE_BLACK_IP" != " " ]; then
+            ifconfig ethblack $CONFIGURE_BLACK_IP up
+        else
+            ifconfig ethblack 192.168.10.1
+            udhcpd_config ethblack 192.168.10
+            udhcpd /udhcpd.conf
+        fi
+        if [ ! -s /etc/dropbear/dropbear_ecdsa_host_key ]; then
+            # build host didn't have dropbear, so make a new key on each boot
+            dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
+        fi
+        dropbear
 
-	run_shell /dev/ttyS0
+        run_shell /dev/ttyS0
     fi
 
     if [ " $CONSOLE_SHELL" = " yes" ]; then
-	set_led status 800 200
-	run_shell /dev/ttyS0
+        set_led status 800 200
+        run_shell /dev/ttyS0
     fi
 
     echo -n "Searching for partition GNUBEE-ROOT..." > /dev/kmsg
     set_led system 200 800
 
     if test -x /bin/mdadm; then
-	modprobe md_mod
-	echo 1 >  /sys/module/md_mod/parameters/start_ro
-	echo "Assembling md arrays" > /dev/kmsg
-	mdadm --assemble --scan --auto=md --run --freeze-reshape
+        modprobe md_mod
+        echo 1 >  /sys/module/md_mod/parameters/start_ro
+        echo "Assembling md arrays" > /dev/kmsg
+        mdadm --assemble --scan --auto=md --run --freeze-reshape
     fi
 
     if test -x /bin/lvm; then
-	modprobe dm_mod
-	echo "Activating LVM volumes" > /dev/kmsg
-	lvm vgchange -a y
+        modprobe dm_mod
+        echo "Activating LVM volumes" > /dev/kmsg
+        lvm vgchange -a y
     fi
 
     sleep 1
 
     while true; do
-	crypt_root=`findfs PARTLABEL=GNUBEE-CRYPT-ROOT`
-	if test -n "$crypt_root"; then
-	    cryptsetup open "$crypt_root" rootdev
-	    root_dev="/dev/mapper/rootdev"
-	else
+        crypt_root=`findfs PARTLABEL=GNUBEE-CRYPT-ROOT`
+        if test -n "$crypt_root"; then
+            cryptsetup open "$crypt_root" rootdev
+            root_dev="/dev/mapper/rootdev"
+        else
             root_dev=`findfs LABEL=GNUBEE-ROOT`
-	fi
+        fi
 
-	mounttype=
-	# Make sure filesystem module is loaded for $root_dev
-	if [ -n "$root_dev" ]; then
-	    eval `blkid $root_dev -o udev`
-	    if [ -n "$ID_FS_TYPE" ]; then
-		modprobe fs-$ID_FS_TYPE
-		mounttype="-t $ID_FS_TYPE"
-	    fi
-	fi
+        mounttype=
+        # Make sure filesystem module is loaded for $root_dev
+        if [ -n "$root_dev" ]; then
+            eval `blkid $root_dev -o udev`
+            if [ -n "$ID_FS_TYPE" ]; then
+                modprobe fs-$ID_FS_TYPE
+                mounttype="-t $ID_FS_TYPE"
+            fi
+        fi
 
-	if test -n "$root_dev" &&
-		mount $mounttype -o ro $root_dev /mnt/root &&
-		test -L /mnt/root/sbin/init -o -e /mnt/root/sbin/init &&
-		gnubee_switch_root
-	then break
-	else
-	    set_led system
-	    set_led status 800 200
-	    run_shell /dev/ttyS0
-	fi
+        if test -n "$root_dev" &&
+           mount $mounttype -o ro $root_dev /mnt/root &&
+           test -L /mnt/root/sbin/init -o -e /mnt/root/sbin/init &&
+           gnubee_switch_root
+        then break
+        else
+            set_led system
+            set_led status 800 200
+            run_shell /dev/ttyS0
+        fi
     done
 }
 
 setup_busybox() {
- # If "busybox --list" couldn't be run during mkinitramfs, we
- # need to do it now.
- if busybox test -e /bin/test
- then return
- fi
- for i in `busybox --list`; do
-    busybox ln -s /bin/busybox /bin/$i
- done
+    # If "busybox --list" couldn't be run during mkinitramfs, we
+    # need to do it now.
+    if busybox test -e /bin/test
+    then return
+    fi
+    for i in `busybox --list`; do
+        busybox ln -s /bin/busybox /bin/$i
+    done
 }
 
 setup_busybox

@@ -16,17 +16,17 @@ mp=/tmp/newroot
 
 set_host() {
     case `hostname` in
-	"(none)") ;;
-	* ) echo "## Hostname set to `hostname`";
-	    return 0
+    "(none)" ) ;;
+    * ) echo "## Hostname set to `hostname`";
+        return 0
     esac
 
     echo -n "Choose hostname (default gnubee.gnubee): "
     read h
     case $h in
-	"" ) hostname gnubee.gnubee;;
-	*" "*) ;;
-	* ) hostname $h
+    "" ) hostname gnubee.gnubee;;
+    *" "* ) ;;
+    * ) hostname $h
     esac
     return 1
 }
@@ -34,7 +34,7 @@ set_host() {
 check_net() {
     net_dev=`ip route show match 0/0 | awk '$4 == "dev" {print $5 }'`
     if [ -z "$net_dev" ]; then
-	return 1
+        return 1
     fi
 
     net_ip=`ip addr show $net_dev | awk '$1 == "inet" {print $2; exit}'`
@@ -45,7 +45,7 @@ set_passwd() {
     if grep 'l80E2NNrh32z0N$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6Nkx' /etc/shadow > /dev/null
     then :
     else echo "## root password changed"
-	 return 0
+         return 0
     fi
     echo "Please set the root password."
     passwd root
@@ -54,48 +54,48 @@ set_passwd() {
 
 set_net() {
     if check_net; then
-	[ -f /etc/resolv.conf ] || echo nameserver 8.8.8.8 > /etc/resolv.conf
-	echo "## network configured - $net_ip"
-	return 0
+        [ -f /etc/resolv.conf ] || echo nameserver 8.8.8.8 > /etc/resolv.conf
+        echo "## network configured - $net_ip"
+        return 0
     fi
     if ps | grep '[u]dhcpc' > /dev/null; then
-	echo "## waiting for network..."
-	sleep 5
-	if route -n 2> /dev/null | grep '^0\.0\.0\.0' > /dev/null; then
-	    ip=`ip addr show | awk '$1 == "inet" { print $2;exit}'`
-	    echo "## network configured - $ip"
-	    return 0
-	fi
-	killall udhcpc
+        echo "## waiting for network..."
+        sleep 5
+        if route -n 2> /dev/null | grep '^0\.0\.0\.0' > /dev/null; then
+            ip=`ip addr show | awk '$1 == "inet" { print $2;exit}'`
+            echo "## network configured - $ip"
+            return 0
+        fi
+        killall udhcpc
     fi
 
     dev=ethblack
     echo -n "Configure network ($dev) [s]tatic [d]hcp or [m]anual? "
     read ans
     case $ans in
-	[Mm]* ) echo "Please configure network, create a default route, and restart."
-		echo nameserver 8.8.8.8 > /etc/resolv.conf
-		exit 0
-		;;
-	[Dd]* ) ifconfig $dev up ; udhcpc -i $dev -s /udhcpc.script;
-		;;
-	[Ss]* ) echo -n "IP address (192.168.1.10)? "
-		read IP
-		t="$IFS"; IFS=.; set $IP; IFS="$t"
-		gw=$1.$2.$3.1
-		echo -n "Netmask (255.255.255.0)? "
-		read NETMASK
-		echo -n "Gateway ($gw)? "
-		read GATE
-		echo -n "DNS server (8.8.8.8)? "
-		read DNS
-		echo "### If you have chosen a new IP address, your connection will"
-		echo "### stop working now.  Re-connect with hthe new address."
-		killall udhcpc
-		ifconfig $dev ${IP:-192.168.1.10} up netmask ${NETMASK:-255.255.255.0}
-		route add default  gw ${GATE:-$gw}
-		echo nameserver ${DNS:-8.8.8.8} > /etc/resolv.conf
-		;;
+    [Mm]* ) echo "Please configure network, create a default route, and restart."
+        echo nameserver 8.8.8.8 > /etc/resolv.conf
+        exit 0
+        ;;
+    [Dd]* ) ifconfig $dev up ; udhcpc -i $dev -s /udhcpc.script;
+        ;;
+    [Ss]* ) echo -n "IP address (192.168.1.10)? "
+        read IP
+        t="$IFS"; IFS=.; set $IP; IFS="$t"
+        gw=$1.$2.$3.1
+        echo -n "Netmask (255.255.255.0)? "
+        read NETMASK
+        echo -n "Gateway ($gw)? "
+        read GATE
+        echo -n "DNS server (8.8.8.8)? "
+        read DNS
+        echo "### If you have chosen a new IP address, your connection will"
+        echo "### stop working now.  Re-connect with hthe new address."
+        killall udhcpc
+        ifconfig $dev ${IP:-192.168.1.10} up netmask ${NETMASK:-255.255.255.0}
+        route add default  gw ${GATE:-$gw}
+        echo nameserver ${DNS:-8.8.8.8} > /etc/resolv.conf
+        ;;
     esac
     return 1
 }
@@ -105,7 +105,7 @@ set_time() {
     > /tmp/stamp
     newer=`find /init -newer /tmp/stamp`
     if [ -z "$newer" ]; then
-	echo "## time is set: `date`"
+        echo "## time is set: `date`"
         return 0
     fi
     ntpdate pool.ntp.org
@@ -114,8 +114,8 @@ set_time() {
 
 create_filesystem() {
     if grep $mp /proc/mounts > /dev/null ; then
-	echo "## $mp mounted"
-	return 0
+        echo "## $mp mounted"
+        return 0
     fi
     mkdir -p $mp
     echo "Detecting connected partitions, please wait a few moments."
@@ -124,24 +124,24 @@ create_filesystem() {
     echo -n 'Enter device, or "manual" to create md array manually: '
     read dev
     if echo "$OPTIONS" | grep "^${dev}:" ; then
-	echo -n "Confirm creating filesystem on $dev [yN]? "
-	read ans
-	case $ans in
-	    [Yy]* ) mkfs.ext4 $dev && mount -t ext4 $dev $mp ;;
-	esac
-	return 1
+        echo -n "Confirm creating filesystem on $dev [yN]? "
+        read ans
+        case $ans in
+        [Yy]* ) mkfs.ext4 $dev && mount -t ext4 $dev $mp ;;
+        esac
+        return 1
     fi
     case $dev in
-	m | manual ) echo "Please create the device, and run ./config again"
-		     exit 0
+    m | manual ) echo "Please create the device, and run ./config again"
+           exit 0
     esac
     return 1
 }
 
 bootstrap() {
     if [ -f $mp/etc/debian_version ]; then
-	echo "## Debian is installed"
-	return 0
+        echo "## Debian is installed"
+        return 0
     fi
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:$PATH
     export PATH
@@ -183,16 +183,16 @@ fixup_net() {
 	EOF
 
     if check_net; then
-	:
+        :
     else
-	echo "WARNING: network is not configured - something wrong WARNING"
-	return 1
+        echo "WARNING: network is not configured - something wrong WARNING"
+        return 1
     fi
 
     if ps | grep "[u]dhcp.*-i $net_dev" > /dev/null; then
-	fixup_net_dhcp ethblack
+        fixup_net_dhcp ethblack
     else
-	fixup_net_static ethblack $net_ip
+        fixup_net_static ethblack $net_ip
     fi
 }
 
@@ -208,8 +208,8 @@ fixup() {
     set `grep " $mp " /proc/mounts`
     sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' $mp/etc/ssh/sshd_config
     case $1 in
-	/dev/* ) tune2fs -L GNUBEE-ROOT "$1"
-		 echo "LABEL=GNUBEE-ROOT / ext4 noatime,errors=remount-ro 0 1" > $mp/etc/fstab
+    /dev/* ) tune2fs -L GNUBEE-ROOT "$1"
+        echo "LABEL=GNUBEE-ROOT / ext4 noatime,errors=remount-ro 0 1" > $mp/etc/fstab
     esac
     fixup_net
     fixup_modules
