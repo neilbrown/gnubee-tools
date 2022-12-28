@@ -2,7 +2,6 @@
 # mkinitramfs - copyright Neil Brown <neilb@brown.name> 2018
 #  SPDX-License-Identifier: GPL-2.0
 
-
 # mkinitramfs creates an initramfs image from a Debian mips install
 # to be used for booting a GNUBEE-PC.
 # It adds scripts, various binaries and libraries, and provides a
@@ -10,101 +9,104 @@
 # It is not intended to be used directly - use "gbmake initramfs"
 #
 usage() {
-	echo >&2 "Usage: mkinitramfs target-directory file-for-device-list"
-	exit 2
+    echo >&2 "Usage: mkinitramfs target-directory file-for-device-list"
+    exit 2
 }
 
 case $# in
-	2 ) dir=$1 devlist=$2
-		if [ ! -d "$dir" ]; then
-			echo >&2 "$dir does not exist".
-			usage
-		fi
-	;;
-	* ) usage
+    2 ) dir=$1 devlist=$2
+        if [ ! -d "$dir" ]; then
+            echo >&2 "$dir does not exist".
+            usage
+        fi
+    ;;
+    * ) usage
 esac
 
 case `uname -m` in
-	mips ) remote=eval ;;
-	* ) 
-	    if [ -d "$GNUBEE_BUILD_DIR/deb/chroot" ]; then
-		remote=from_chroot
-	    elif [ -n "$GNUBEE_SSH_HOST" ]; then
-		remote="ssh -x $GNUBEE_SSH_HOST"
-		case `$remote uname -m` in
-		    mips ) : success ;;
-		    * ) echo >&2 $GNUBEE_SSH_HOST no accessible or not mips; exit 1
-		esac
-	    else
-		echo 'Please run on a gnubee, or provide GNUBEE_SSH_HOST, or "gbmake chroot"'
-		exit 1
-	    fi
+    mips ) remote=eval ;;
+    * )
+        if [ -d "$GNUBEE_BUILD_DIR/deb/chroot" ]; then
+            remote=from_chroot
+        elif [ -n "$GNUBEE_SSH_HOST" ]; then
+            remote="ssh -x $GNUBEE_SSH_HOST"
+            case `$remote uname -m` in
+                mips ) : success ;;
+                * ) echo >&2 $GNUBEE_SSH_HOST no accessible or not mips; exit 1
+            esac
+        else
+            echo 'Please run on a gnubee, or provide GNUBEE_SSH_HOST, or "gbmake chroot"'
+            exit 1
+        fi
 esac
 
 from_chroot() {
  ch=$GNUBEE_BUILD_DIR/deb/chroot
  if [ "$2" = "which" ]; then
-	for p in /sbin /usr/sbin `echo $PATH | tr : ' '`; do
-	    if [ -f $ch/$p/$3 ]; then
-		echo $p/$3
-		return
-	    fi
-	done
-	return
+    for p in /sbin /usr/sbin `echo $PATH | tr : ' '`; do
+        if [ -f $ch/$p/$3 ]; then
+            echo $p/$3
+            return
+        fi
+    done
+    return
  fi
  if [ "$1" = cat ]; then
-	if [ -e "$ch$2" ]; then
-		cat $ch$2
-	else
-		cat $ch/usr$2
-	fi
-	return
+    if [ -e "$ch$2" ]; then
+        cat $ch$2
+    else
+        cat $ch/usr$2
+    fi
+    return
  fi
 
  if [ "$1" = ldd ]; then
     want=" $2 "
     have=""
     while [ -n "$want" ] ; do
-	oldwant=$want
-	want=
-	for f in $oldwant; do
-	    case "$have" in
-		*" $f "* ) ;;
-		* ) again=yes
-		    have="$have $f "
-		    for f2 in $(strings - $ch$f | grep -a '\.so\.[0-9.]*$' | while read b; do
-				for d in /lib/mipsel-linux-gnu /usr/lib/mipsel-linux-gnu /lib ; do
-				  if [ -f "$ch$d/$b" ]; then echo $d/$b; fi
-				done
-			done); do
-			want="$want $f2"
-			echo " stuff $f2 (mess)"
-		    done
-	     esac
-	done
+        oldwant=$want
+        want=
+        for f in $oldwant; do
+            case "$have" in
+                *" $f "* ) ;;
+                * ) again=yes
+                    have="$have $f "
+                    for f2 in $(strings - $ch$f | grep -a '\.so\.[0-9.]*$' |
+                                    while read b; do
+                                    for d in /lib/mipsel-linux-gnu  \
+                                             /usr/lib/mipsel-linux-gnu /lib
+                                    do
+                                        if [ -f "$ch$d/$b" ]; then echo $d/$b; fi
+                                    done
+                                done); do
+                        want="$want $f2"
+                        echo " stuff $f2 (mess)"
+                    done
+            esac
+        done
     done
     return
  fi
  if [ "$1 $2" = "busybox --list" ]; then
-	# do this after boot
-	return
+    # do this after boot
+    return
  fi
  if [ "$1" = dropbearkey ]; then
-   a=`which 2> /dev/null dropbearkey`
-   if [ -n "$a" ]; then
-	eval "$*"
-   fi
-   return
+    a=`which 2> /dev/null dropbearkey`
+    if [ -n "$a" ]; then
+        eval "$*"
+    fi
+    return
  fi
  case "$*" in
-    *debootstrap* )
-	(cd $ch ; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )
-	;;
+     *debootstrap* )
+         (cd $ch ; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )
+         ;;
      *lib/terminfo*echo* )
-	( cd $ch; [ -d lib/terminfo ] && echo lib || echo usr/lib )
-	;;
-    * ) echo >&2 ERROR cannot run command with chroot: "$*"
-	exit 1
+         ( cd $ch; [ -d lib/terminfo ] && echo lib || echo usr/lib )
+         ;;
+     * ) echo >&2 ERROR cannot run command with chroot: "$*"
+         exit 1
  esac
 }
 
@@ -113,8 +115,8 @@ if [ -L "$prog" ]; then prog=`readlink $prog`; fi
 gbtools=`realpath $(dirname $prog)/..`
 
 if [ ! -d "$gbtools/scripts" ]; then
-	echo >&2 Cannot find scripts in $gbtools
-	exit 1
+    echo >&2 Cannot find scripts in $gbtools
+    exit 1
 fi
 
 cat > $devlist <<- END
@@ -145,9 +147,9 @@ builddir=`realpath "$GNUBEE_BUILD_DIR"`
 cd $dir
 
 case `realpath .` in
-	/*/*/* ) : ok ;;
-	* ) echo >&@ Refusing to create initramfs at such a high-level directory: `realpath .`
-		exit 2;
+    /*/*/* ) : ok ;;
+    * ) echo >&@ Refusing to create initramfs at such a high-level directory: `realpath .`
+        exit 2;
 esac
 
 rm -rf *
@@ -170,20 +172,20 @@ $remote cat /$LIB/terminfo/l/linux > etc/terminfo/l/linux
 # cribbed from https://wiki.gentoo.org/wiki/Custom_Initramfs#LVM
 mkdir -p etc/lvm
 cat > etc/lvm/lvm.conf <<- END
-	devices {
-	    # Disable scanning udev for md/multipath components.
-	    # This is required with recent versions of lvm2, even if you use
-	    # another solution for your LV device nodes; without it lvm commands
-	    # will stall for minutes waiting for udev.
-	    multipath_component_detection = 0
-	    md_component_detection = 0
-	}
-	activation {
-	    # Set to 0 to disable udev synchronisation (if compiled into the binaries).
-	    udev_sync = 0
-	    # Set to 0 to disable the udev rules installed by LVM2
-	    udev_rules = 0
-	}
+    devices {
+        # Disable scanning udev for md/multipath components.
+        # This is required with recent versions of lvm2, even if you use
+        # another solution for your LV device nodes; without it lvm commands
+        # will stall for minutes waiting for udev.
+        multipath_component_detection = 0
+        md_component_detection = 0
+    }
+    activation {
+        # Set to 0 to disable udev synchronisation (if compiled into the binaries).
+        udev_sync = 0
+        # Set to 0 to disable the udev rules installed by LVM2
+        udev_rules = 0
+    }
 END
 
 libs=
@@ -192,8 +194,8 @@ libs=
 for b in busybox findfs; do
     path=`$remote PATH=/bin:/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
-	echo "Please install $b"
-	exit 1;
+        echo "Please install $b"
+        exit 1;
     fi
     echo "## Install $path"
     b=`basename $path`
@@ -205,97 +207,96 @@ debootstrap_bins=""
 
 if [ "$add_optional" = "yes" ] ; then
 
-echo "## copying debootstrap (if present)"
-$remote '(cd /; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )' | tar xf -
-if [ -f bin/debootstrap ]; then
-     # let's install everything else needed to bootstrap a debian install
-    debootstrap_bins="cfdisk fdisk mkfs.ext4 mkfs.btrfs mkfs.xfs tune2fs wget gpgv"
-    libs="$libs /$LIB/mipsel-linux-gnu/libresolv.so.2"
-    libs="$libs /$LIB/mipsel-linux-gnu/libnss_dns.so.2"
+    echo "## copying debootstrap (if present)"
+    $remote '(cd /; tar 2> /dev/null cf - usr/sbin/debootstrap usr/share/debootstrap usr/share/keyrings/debian-archive-keyring.gpg )' | tar xf -
+    if [ -f bin/debootstrap ]; then
+         # let's install everything else needed to bootstrap a debian install
+        debootstrap_bins="cfdisk fdisk mkfs.ext4 mkfs.btrfs mkfs.xfs tune2fs wget gpgv"
+        libs="$libs /$LIB/mipsel-linux-gnu/libresolv.so.2"
+        libs="$libs /$LIB/mipsel-linux-gnu/libnss_dns.so.2"
 
-    # Need to build pkgdetails - or provide perl
-    if [ "$remote" = "from_chroot" ]; then
-	debootstrap_bins="$debootstrap_bins perl"
+        # Need to build pkgdetails - or provide perl
+        if [ "$remote" = "from_chroot" ]; then
+        debootstrap_bins="$debootstrap_bins perl"
+        else
+        echo "## building pkgdetails"
+        T=/tmp/.gb-built-$$
+        (cd $gbtools/pkgdetails; tar cf - . ) |
+            $remote "rm -rf $T ; mkdir -p $T; cd $T; tar xf -; cc -Wno-implicit-function-declaration -o pkgdetails pkgdetails.c"
+        $remote cat $T/pkgdetails > usr/share/debootstrap/pkgdetails
+        chmod 755 usr/share/debootstrap/pkgdetails
+        fi
     else
-	echo "## building pkgdetails"
-	T=/tmp/.gb-built-$$
-	(cd $gbtools/pkgdetails; tar cf - . ) |
-	    $remote "rm -rf $T ; mkdir -p $T; cd $T; tar xf -; cc -Wno-implicit-function-declaration -o pkgdetails pkgdetails.c"
-	$remote cat $T/pkgdetails > usr/share/debootstrap/pkgdetails
-	chmod 755 usr/share/debootstrap/pkgdetails
+        echo "!! debootstrap not installed"
     fi
-else
-    echo "!! debootstrap not installed"
-fi
-# now optional binaries
-for b in blkid cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm \
-	btrfs ldd strace \
-	evtest ntpdate passwd $debootstrap_bins ; do
-    path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
-    if [ -z "$path" ]; then
-	echo $"$b not found, not installing"
-    else
-	echo "## Install $path"
-	b=`basename $path`
-	$remote cat "$path" > bin/$b ; chmod 755 bin/$b
-	libs="$libs `$remote ldd "$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
-    fi
-done
+    # now optional binaries
+    for b in blkid cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm \
+        btrfs ldd strace \
+        evtest ntpdate passwd $debootstrap_bins ; do
+        path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
+        if [ -z "$path" ]; then
+        echo $"$b not found, not installing"
+        else
+        echo "## Install $path"
+        b=`basename $path`
+        $remote cat "$path" > bin/$b ; chmod 755 bin/$b
+        libs="$libs `$remote ldd "$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
+        fi
+    done
 
-if [ -f bin/dropbear ]; then
-    # dropbear needs some extra configuration
-    echo '## configuring dropbear'
-    mkdir etc/dropbear
-    if [ ! -f $builddir/dropbear/dropbear_ecdsa_host_key ]; then
-	mkdir -p $builddir/dropbear
-	$remote "dropbearkey -t ecdsa -f /tmp/drop$$.key >&2;
-		 cat /tmp/drop$$.key" >  $builddir/dropbear/dropbear_ecdsa_host_key
+    if [ -f bin/dropbear ]; then
+        # dropbear needs some extra configuration
+        echo '## configuring dropbear'
+        mkdir etc/dropbear
+        if [ ! -f $builddir/dropbear/dropbear_ecdsa_host_key ]; then
+        mkdir -p $builddir/dropbear
+        $remote "dropbearkey -t ecdsa -f /tmp/drop$$.key >&2;
+             cat /tmp/drop$$.key" >  $builddir/dropbear/dropbear_ecdsa_host_key
+        fi
+        cp $builddir/dropbear/* etc/dropbear
+        echo passwd: files >> etc/nsswitch.conf
+        echo group: files >> etc/nsswitch.conf
+        echo > etc/passwd root:x:0:0:root:/:/bin/sh
+        echo > etc/group  root:x:0:
+        echo 'PATH=.:/bin; export PATH' > etc/profile
+        # root password is GnuBee
+        echo > etc/shadow 'root:$6$l80E2NNrh32z0N$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6NkxW3eLCvLbw05tMKkbyRlieU1QeZ4tngZpaS9Fnf0::0:99999:7:::'
+        libs="$libs /$LIB/mipsel-linux-gnu/libnss_files.so.2"
+        if [ -f bin/passwd ]; then
+        # need pam modules too
+        echo 'passwd password required pam_unix.so sha512' > etc/pam.conf
+        mkdir -p $LIB/mipsel-linux-gnu/security
+        path=$LIB/mipsel-linux-gnu/security/pam_unix.so
+        $remote cat /$path > $path
+        libs="$libs `$remote ldd "/$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
+        fi
     fi
-    cp $builddir/dropbear/* etc/dropbear
-    echo passwd: files >> etc/nsswitch.conf
-    echo group: files >> etc/nsswitch.conf
-    echo > etc/passwd root:x:0:0:root:/:/bin/sh
-    echo > etc/group  root:x:0:
-    echo 'PATH=.:/bin; export PATH' > etc/profile
-    # root password is GnuBee
-    echo > etc/shadow 'root:$6$l80E2NNrh32z0N$HX1nhaV6TcdM3OcMm8PVyzQZAl6c9Q2GYugdS9MuDcG6NkxW3eLCvLbw05tMKkbyRlieU1QeZ4tngZpaS9Fnf0::0:99999:7:::'
-    libs="$libs /$LIB/mipsel-linux-gnu/libnss_files.so.2"
-    if [ -f bin/passwd ]; then
-	# need pam modules too
-	echo 'passwd password required pam_unix.so sha512' > etc/pam.conf
-	mkdir -p $LIB/mipsel-linux-gnu/security
-	path=$LIB/mipsel-linux-gnu/security/pam_unix.so
-	$remote cat /$path > $path
-	libs="$libs `$remote ldd "/$path" |sed -n -e 's,^.*[ 	]\(/[^ ]*\) (.*$,\1,p'`"
-    fi
-fi
 
-
-# ntpdate need to find the ntp service
-echo ntp 123/tcp >> etc/services
-echo ntp 123/udp >> etc/services
+    # ntpdate need to find the ntp service
+    echo ntp 123/tcp >> etc/services
+    echo ntp 123/udp >> etc/services
 
 fi
 
 # Now make sure we have all the libraries we need.
 for lib in $libs; do
-	if [ ! -f .$lib ]; then
-		echo '## Adding' $lib
-		mkdir -p `dirname .$lib`
-		$remote cat $lib > .$lib ; chmod +x .$lib
-	fi
+    if [ ! -f .$lib ]; then
+        echo '## Adding' $lib
+        mkdir -p `dirname .$lib`
+        $remote cat $lib > .$lib ; chmod +x .$lib
+    fi
 done
 
 # add busybox links
 $remote busybox --list |
-  while read a;
-  do
-     [ -e bin/$a ] || ln -s busybox bin/$a
-  done
+    while read a;
+    do
+        [ -e bin/$a ] || ln -s busybox bin/$a
+    done
 
 # copy in some scripts
 for i in $gbtools/initramfs/*
 do
-	echo "## Install script `basename $i`"
-	cp -r $i .
+    echo "## Install script `basename $i`"
+    cp -r $i .
 done
