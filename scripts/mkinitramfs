@@ -191,7 +191,7 @@ END
 libs=
 
 # install essential binaries
-for b in busybox findfs; do
+for b in busybox findfs evtest blkid; do
     path=`$remote PATH=/bin:/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
     if [ -z "$path" ]; then
         echo "Please install $b"
@@ -230,9 +230,9 @@ if [ "$add_optional" = "yes" ] ; then
         echo "!! debootstrap not installed"
     fi
     # now optional binaries
-    for b in blkid cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm \
+    for b in cryptsetup mdadm dropbear dbclient fsck.ext4 xfs_repair lvm \
         btrfs ldd strace \
-        evtest ntpdate passwd $debootstrap_bins ; do
+        ntpdate passwd $debootstrap_bins ; do
         path=`$remote PATH=/sbin:/usr/sbin:$PATH which $b 2> /dev/null`
         if [ -z "$path" ]; then
         echo $"$b not found, not installing"
