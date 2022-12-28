@@ -62,6 +62,16 @@ run_shell() {
     setsid sh -c "exec sh < $tty > $tty 2>&1"
 }
 
+need_fix_interfaces() {
+    if grep eth[1b] /mnt/root/etc/network/interfaces \
+                    /mnt/root/etc/network/interfaces.d/* > /dev/null ; then
+        # already fixed
+        return 1;
+    fi
+    # need to convert eth0.1 or eth0.2 to new names
+    return 0
+}
+
 gnubee_switch_root(){
     echo "Partition GNUBEE-ROOT found. Starting..." > /dev/kmsg
     r=`uname -r`
@@ -76,6 +86,26 @@ gnubee_switch_root(){
         # and "keep" is needed of course
         cp /keep /mnt/root/lib/modules/
         chmod -R go-w /mnt/root/lib/modules
+    fi
+
+    # If /etc/network/interfaces* doesn't mention ethblack/ethblue/eth1,
+    # then they probably used the old eth0.1/eth0.2 and we need to do something,
+    # else host will be inaccessible if there is no console.
+    # So copy /etc/network to /etc/network.dup, change the eth names, and
+    # bind-mount it over.
+    if need_fix_interfaces; then
+        cp -r /mnt/root/etc/network /tmp/network
+        mount -o nosuid,nodev -t tmpfs tmpfs /mnt/root/etc/network
+        cp -r /tmp/network/. /mnt/root/etc/network/.
+        chmod -R go-w /mnt/root/etc/network
+        sed -i -e '/^[^#]/s/eth0.1/ethblack/' -e '/^[^#]/s/eth0.2/ethblue/' \
+            /mnt/root/etc/network/interfaces /mnt/root/etc/network/interfaces.d/*
+        # This kernel supports the switch through DSA, so set_switch cannot see it.
+        ( cd /mnt/root/etc/network/script.d
+          [ -f no_switch ] && echo exit 1 > no_switch
+          [ -f set_switch ] && echo exit 0 > set_switch
+          )
+        echo ===== Created temporary /etc/network to handle new interface names ======
     fi
 
     # kill all running dhcp daemons
