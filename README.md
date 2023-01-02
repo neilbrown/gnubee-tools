@@ -71,9 +71,9 @@ Building
 To build a firmware image you can
 
 	git clone https://github.com/neilbrown/gnubee-tools.git
-	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v5.19
+	git clone --depth=20 https://github.com/neilbrown/linux.git -b gnubee/v6.1
 	cd linux
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.19
+	../gnubee-tools/scripts/gbmake firmware gbpc1-6.1
 
 If you run this on the GnuBee itself (with Debian installed), you need
 to ensure some swap space is configured, as "lzma" needs to allocate a
@@ -94,10 +94,10 @@ clone` of Linux takes roughly forever on the GnuBee due to limited
 memory, unless the "--depth" option is specified as above.
 Alternately, use
 
-	wget  https://github.com/neilbrown/linux/archive/gnubee/v5.19.zip
-	unzip v5.19.zip
-	cd linux-gnubee-v5.19
-	../gnubee-tools/scripts/gbmake firmware gbpc1-5.19
+	wget  https://github.com/neilbrown/linux/archive/gnubee/v6.1.zip
+	unzip v6.1.zip
+	cd linux-gnubee-v6.1
+	../gnubee-tools/scripts/gbmake firmware gbpc1-6.1
 
 
 If you want to just run `gbmake firmware` without the full path, you
