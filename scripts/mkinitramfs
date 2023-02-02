@@ -9,19 +9,20 @@
 # It is not intended to be used directly - use "gbmake initramfs"
 #
 usage() {
-    echo >&2 "Usage: mkinitramfs [-f] target-directory file-for-device-list"
+    echo >&2 "Usage: mkinitramfs kern-config [-f] target-directory file-for-device-list"
     exit 2
 }
 
 force=
-if [ " $1" = " -f" ]; then
-    force=yes
-    shift
-fi
+for i in "$@"; do
+    if [ "$i" == "-f" ]; then
+        force=yes
+    fi
+done
 
 case $# in
-    2 ) dir=$1 devlist=$2
-    ;;
+    3 ) dir=$2 devlist=$3;;
+    4 ) dir=$3 devlist=$4;;
     * ) usage
 esac
 
@@ -143,7 +144,7 @@ if [ -n "$force" -o ! -s $devlist ] ; then
 fi
 
 add_optional=yes
-if grep CONFIG_DTB_GNUBEE._UBOOT=y "$GNUBEE_KERNEL_OBJECTS/.config" > /dev/null 2>&1; then
+if [[ "$1" == "gbpc1u"* ]]; then
     add_optional=no
 fi
 

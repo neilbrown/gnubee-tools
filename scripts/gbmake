@@ -184,7 +184,7 @@ gnubee_initramfs() {
     esac
 
     mkdir -p "$GNUBEE_KERNEL_OBJECTS"
-    $gbtools/scripts/mkinitramfs $1 "$i" "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
+    $gbtools/scripts/mkinitramfs $1 $2 "$i" "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
     echo "initramfs: $(du -sh "$i")"
 }
 
@@ -200,8 +200,10 @@ gnubee_modules() {
     rm -f "$GNUBEE_INITRAMFS_TREE"/lib/modules/[1-9]*/{build,source}
     { echo "This file is examined by the initramfs on boot" ;
       date ; } > "$GNUBEE_INITRAMFS_TREE/lib/modules/stamp"
-    # Module.symvers will get replaced when we make uImage
-    cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers" "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"
+    if [[ "$1" != *"6.2" ]]; then
+        # Module.symvers will get replaced when we make uImage
+        cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers" "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"
+    fi
 }
 
 gnubee_headers() {
@@ -213,7 +215,7 @@ gnubee_headers() {
 }
 
 gnubee_extern() {
-    if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+    if [[ "$1" == "gbpc1u"* ]]; then
         return 0
     fi
     KO=`realpath ${GNUBEE_KERNEL_OBJECTS}`
@@ -245,17 +247,6 @@ gnubee_bin() {
         echo >&2 "Please run 'gbmake initramfs' first"
         exit 1
     fi
-    make O="$GNUBEE_KERNEL_OBJECTS" uImage.bin || exit 1
-    if [ -f  "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" ]; then
-        # "make uImage" removes module info from Module.symvers.
-        cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full"	\
-           "$GNUBEE_KERNEL_OBJECTS/Module.symvers"
-    fi
-    if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" \
-          /srv/tftpboot/GB-PCx_uboot.bin
-    then
-        ls -lh /srv/tftpboot/GB-PCx_uboot.bin
-    fi
     V=`sed -n 's/^VERSION = //p' Makefile`
     P=`sed -n 's/^PATCHLEVEL = //p' Makefile`
     S=`sed -n 's/^SUBLEVEL = //p' Makefile`
@@ -265,17 +256,52 @@ gnubee_bin() {
     else
         vers="$V.$P.$S$X"
     fi
-    if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+    if [[ "$1" == "gbpc2"* ]]; then
+        if [[ "$1" == *"6.2" ]]; then
+            dtb=mt7621-gnubee-gb-pc2.dtb
+        fi
         suffix="${vers}-gbpc2"
     else
-        if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+        if [[ "$1" == "gbpc1u"* ]]; then
+            if [[ "$1" == *"6.2" ]]; then
+                dtb=mt7621-gnubee-gb-pc1-uboot.dtb
+            fi
             suffix="${vers}-gbpc1u"
         else
+            if [[ "$1" == *"6.2" ]]; then
+                dtb=mt7621-gnubee-gb-pc1.dtb
+            fi
             suffix="${vers}-gbpc1"
         fi
     fi
-
-    cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+    if [[ "$1" == *"6.2" ]]; then
+        make O="$GNUBEE_KERNEL_OBJECTS" vmlinux.bin && \
+        cat "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/vmlinux.bin" \
+        "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/dts/ralink/$dtb" > "$GNUBEE_KERNEL_OBJECTS/vmlinux_w_dtb" && \
+        mkimage -A mips -O linux -T kernel -C none -a 0x80001000 -e \
+        $("$GNUBEE_KERNEL_OBJECTS/arch/mips/tools/elf-entry" "$GNUBEE_KERNEL_OBJECTS/vmlinux") \
+        -n "Linux Kernel $(make kernelversion)" -d "$GNUBEE_KERNEL_OBJECTS/vmlinux_w_dtb" \
+        "$GNUBEE_KERNEL_OBJECTS/uboot-vmlinux_w_dtb" || exit 1
+        if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/uboot-vmlinux_w_dtb" \
+              /srv/tftpboot/GB-PCx_uboot.bin
+        then
+            ls -lh /srv/tftpboot/GB-PCx_uboot.bin
+        fi
+        cp "$GNUBEE_KERNEL_OBJECTS/uboot-vmlinux_w_dtb" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+    else
+        make O="$GNUBEE_KERNEL_OBJECTS" uImage.bin || exit 1
+        if [ -f  "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" ]; then
+            # "make uImage" removes module info from Module.symvers.
+            cp "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" \
+               "$GNUBEE_KERNEL_OBJECTS/Module.symvers"
+        fi
+        if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" \
+              /srv/tftpboot/GB-PCx_uboot.bin
+        then
+            ls -lh /srv/tftpboot/GB-PCx_uboot.bin
+        fi
+        cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+    fi
     ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
 }
 
@@ -283,10 +309,10 @@ gnubee_firmware() {
     { [ -f "$GNUBEE_KERNEL_OBJECTS/.config" ] || gnubee_defconfig ${1}; } &&
     make O="$GNUBEE_KERNEL_OBJECTS" ${2--j4} &&
     gnubee_headers &&
-    gnubee_initramfs &&
-    gnubee_modules &&
-    gnubee_extern &&
-    gnubee_bin
+    gnubee_initramfs $1 &&
+    gnubee_modules $1 &&
+    gnubee_extern $1 &&
+    gnubee_bin $1
 }
 
 # These must at least exist for any compile
@@ -296,11 +322,11 @@ touch "$GNUBEE_KERNEL_OBJECTS/initramfs-files.txt"
 case $1 in
   defconfig* | *defconfig ) gnubee_defconfig $1;;
   chroot ) gnubee_chroot ;;
-  initramfs ) gnubee_initramfs -f;;
-  modules ) gnubee_modules ;;
+  initramfs ) gnubee_initramfs $2 -f;;
+  modules ) gnubee_modules $2;;
   headers ) gnubee_headers ;;
-  extern ) gnubee_extern ;;
-  gnubee.bin ) gnubee_bin  ;;
+  extern ) gnubee_extern $2;;
+  gnubee.bin ) gnubee_bin $2;;
   firmware ) gnubee_firmware $2 $3;;
   help | -h ) help ;;
 
