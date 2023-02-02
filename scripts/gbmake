@@ -286,6 +286,40 @@ make_uImage() {
     ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
 }
 
+make_vmlinux_w_dtb() {
+    vers=$1
+
+    make O="$GNUBEE_KERNEL_OBJECTS" vmlinux.bin || exit 1
+    for model in pc1 pc2; do
+        dtb=mt7621-gnubee-gb-$model.dtb
+        suffix=${vers}-gb${model}
+
+        if grep "^CONFIG_DEFAULT_HOSTNAME=.*uboot.*" \
+              $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+		if [ $model == pc1 ]; then break; fi
+            dtb=mt7621-gnubee-gb-${model}-uboot.dtb
+            suffix=${vers}-gb${model}u
+        fi
+
+        cat "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/vmlinux.bin" \
+            "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/dts/ralink/$dtb" \
+          > "$GNUBEE_KERNEL_OBJECTS/vmlinux_w_dtb" &&
+        mkimage -A mips -O linux -T kernel -C none -a 0x80001000 \
+           -e $("$GNUBEE_KERNEL_OBJECTS/arch/mips/tools/elf-entry" \
+                 "$GNUBEE_KERNEL_OBJECTS/vmlinux") \
+           -n "Linux Kernel $(make kernelversion)" \
+           -d "$GNUBEE_KERNEL_OBJECTS/vmlinux_w_dtb" \
+            "$GNUBEE_KERNEL_OBJECTS/uboot-vmlinux_w_dtb" || exit 1
+        if cp 2> /dev/null "$GNUBEE_KERNEL_OBJECTS/uboot-vmlinux_w_dtb" \
+              /srv/tftpboot/GB-${model^^?}_uboot.bin
+        then
+            ls -lh /srv/tftpboot/GB-${model^^?}_uboot.bin
+        fi
+        cp "$GNUBEE_KERNEL_OBJECTS/uboot-vmlinux_w_dtb" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+        ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+    done
+}
+
 gnubee_bin() {
     if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
         echo >&2 "Please run 'gbmake initramfs' first"
@@ -294,7 +328,11 @@ gnubee_bin() {
 
     get_vers vers
 
-    make_uImage $vers
+    if grep -s CONFIG_BUILTIN_DTB=y $GNUBEE_KERNEL_OBJECTS/.config; then
+        make_uImage $vers
+    else
+        make_vmlinux_w_dtb $vers
+    fi
 }
 
 gnubee_firmware() {
