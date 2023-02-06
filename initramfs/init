@@ -150,7 +150,6 @@ gnubee_boot(){
     modprobe xhci_mtk_hcd
     modprobe usb_storage
 
-    modprobe gpio_keys_polled
     modprobe gpio_keys
     modprobe evdev
 
