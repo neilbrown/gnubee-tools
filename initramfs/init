@@ -146,15 +146,9 @@ gnubee_boot(){
     mkdir /dev/pts
     mount -t devpts devpts /dev/pts
 
-    modprobe ahci
     modprobe xhci_mtk
     modprobe xhci_mtk_hcd
     modprobe usb_storage
-    modprobe sd_mod
-    modprobe mtk_sd
-    modprobe mmc_block
-
-    modprobe ext4
 
     modprobe gpio_keys_polled
     modprobe gpio_keys
@@ -227,7 +221,6 @@ gnubee_boot(){
     set_led system 200 800
 
     if test -x /bin/mdadm; then
-        modprobe md_mod
         echo 1 >  /sys/module/md_mod/parameters/start_ro
         echo "Assembling md arrays" > /dev/kmsg
         mdadm --assemble --scan --auto=md --run --freeze-reshape
