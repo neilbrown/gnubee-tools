@@ -143,7 +143,7 @@ if [ -n "$force" -o ! -s $devlist ] ; then
 fi
 
 add_optional=yes
-if grep CONFIG_DTB_GNUBEE._UBOOT=y "$GNUBEE_KERNEL_OBJECTS/.config" > /dev/null 2>&1; then
+if grep "^CONFIG_DEFAULT_HOSTNAME=.*uboot.*" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null 2>&1; then
     add_optional=no
 fi
 

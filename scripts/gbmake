@@ -213,7 +213,7 @@ gnubee_headers() {
 }
 
 gnubee_extern() {
-    if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+    if grep "^CONFIG_DEFAULT_HOSTNAME=.*uboot.*" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null 2>&1; then
         return 0
     fi
     KO=`realpath ${GNUBEE_KERNEL_OBJECTS}`
@@ -268,7 +268,7 @@ gnubee_bin() {
     if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
         suffix="${vers}-gbpc2"
     else
-        if grep "^CONFIG_DTB_GNUBEE1_UBOOT=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+        if grep "^CONFIG_DEFAULT_HOSTNAME=.*uboot.*" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null 2>&1; then
             suffix="${vers}-gbpc1u"
         else
             suffix="${vers}-gbpc1"
