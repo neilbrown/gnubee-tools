@@ -67,6 +67,14 @@ gnubee_model() {
     return 0
 }
 
+use_config() {
+    conf=$1
+    echo >&2 "gbmake: using config $conf"
+    mkdir -p "$GNUBEE_KERNEL_OBJECTS"
+    cp "$GNUBEE_CONFIG_DIR/$conf" "$GNUBEE_KERNEL_OBJECTS/.config"
+    make O="$GNUBEE_KERNEL_OBJECTS" oldconfig
+}
+
 gnubee_defconfig() {
     mach=${1#defconfig_}
     mach=${mach#defconfig-}
@@ -82,15 +90,19 @@ gnubee_defconfig() {
         fi
     esac
     if [ -f "$GNUBEE_CONFIG_DIR/$mach" ]; then
-        mkdir -p "$GNUBEE_KERNEL_OBJECTS"
-        cp "$GNUBEE_CONFIG_DIR/$mach" "$GNUBEE_KERNEL_OBJECTS/.config"
-        make O="$GNUBEE_KERNEL_OBJECTS" oldconfig
-    else
-        [ -n "$mach" ] && echo >&2 "Config file '$mach' does not exist"
-        echo >&2 "Please choose one of:"
-        ls -C "$GNUBEE_CONFIG_DIR" | sed 's/^/    /' >&2
-        exit 1
+        use_config "$mach"
+        return
     fi
+    get_vers v base
+    if [ -f "$GNUBEE_CONFIG_DIR/gb-$base" ]; then
+        use_config "gb-$base"
+        return
+    fi
+
+    [ -n "$mach" ] && echo >&2 "Config file '$mach' does not exist"
+    echo >&2 "Please choose one of:"
+    ls -C "$GNUBEE_CONFIG_DIR" | sed 's/^/    /' >&2
+    exit 1
 }
 
 deb_data() {
