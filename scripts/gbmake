@@ -258,11 +258,18 @@ get_vers() {
 }
 
 
-gnubee_bin() {
-    if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
-        echo >&2 "Please run 'gbmake initramfs' first"
-        exit 1
+make_uImage() {
+
+    if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
+        suffix="${1}-gbpc2"
+    else
+        if grep "^CONFIG_DEFAULT_HOSTNAME=.*uboot.*" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null 2>&1; then
+            suffix="${1}-gbpc1u"
+        else
+            suffix="${1}-gbpc1"
+        fi
     fi
+
     make O="$GNUBEE_KERNEL_OBJECTS" uImage.bin || exit 1
     if [ -f  "$GNUBEE_KERNEL_OBJECTS/Module.symvers-full" ]; then
         # "make uImage" removes module info from Module.symvers.
@@ -275,20 +282,19 @@ gnubee_bin() {
         ls -lh /srv/tftpboot/GB-PCx_uboot.bin
     fi
 
-    get_vers vers
-
-    if grep "^CONFIG_DTB_GNUBEE2=y" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null; then
-        suffix="${vers}-gbpc2"
-    else
-        if grep "^CONFIG_DEFAULT_HOSTNAME=.*uboot.*" $GNUBEE_KERNEL_OBJECTS/.config > /dev/null 2>&1; then
-            suffix="${vers}-gbpc1u"
-        else
-            suffix="${vers}-gbpc1"
-        fi
-    fi
-
     cp "$GNUBEE_KERNEL_OBJECTS/arch/mips/boot/uImage.bin" "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
     ls -lh "$GNUBEE_BUILD_DIR/gnubee-${suffix}.bin"
+}
+
+gnubee_bin() {
+    if [ ! -f "$GNUBEE_INITRAMFS_TREE/init" ]; then
+        echo >&2 "Please run 'gbmake initramfs' first"
+        exit 1
+    fi
+
+    get_vers vers
+
+    make_uImage $vers
 }
 
 gnubee_firmware() {
