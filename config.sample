@@ -1,6 +1,8 @@
 #  SPDX-License-Identifier: GPL-2.0
 #
-# This is check code sourced by gbmake
+# This is shell code sourced by gbmake
+# config.sample should be copied to config, and
+# edited as needed.
 
 # Directory for kernel build objects, usually a relative path
 #   GNUBEE_KERNEL_OBJECTS=O
@@ -12,6 +14,8 @@
 #   GNUBEE_BUILD_DIR=
 # Cross compiler - full path such as /opt/cross/bin/mipsel-unknown-linux-gnu-
 #   CROSS_COMPILE=
+# Extra options to "make" for kernel build
+#   GNUBEE_MAKE_OPTS="-j8"
 # GnuBee running Debian from which various programs can be copied.
 #   GNUBEE_SSH_HOST=root@192.168.1.111
 # To include extenal modules in the image, list them here.  Just the name

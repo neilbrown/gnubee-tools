@@ -349,7 +349,7 @@ gnubee_bin() {
 
 gnubee_firmware() {
     { [ -f "$GNUBEE_KERNEL_OBJECTS/.config" ] || gnubee_defconfig ${1}; } &&
-    make O="$GNUBEE_KERNEL_OBJECTS" ${2--j4} &&
+    make O="$GNUBEE_KERNEL_OBJECTS" -j4 ${GNUBEE_MAKE_OPTS} $2 &&
     gnubee_headers &&
     gnubee_initramfs &&
     gnubee_modules &&
