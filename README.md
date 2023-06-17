@@ -50,7 +50,7 @@ install them run:
 On whichever machine you want to build the kernel (which could be a
 GnuBee) you will need:
 
-	sudo apt-get install git make gcc bc libssl-dev u-boot-tools unzip
+	sudo apt-get install git make gcc bc libssl-dev u-boot-tools unzip rsync
 
 Other packages for the GnuBee that are optional but give more functionality
 in the initramfs are:
